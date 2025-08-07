@@ -10,10 +10,11 @@ import {
   doc,
   deleteDoc,
   signInWithEmailAndPassword,
-  createUserWithEmailAndPassword
+  createUserWithEmailAndPassword,
+  getDoc
 } from './firebase-config.js';
 
-// --- ELEMENTOS PRINCIPALES (acceso seguro, responsive) ---
+// --- ELEMENTOS PRINCIPALES ---
 const loginBtn = document.getElementById('login-anon-btn');
 const loginEmailBtn = document.getElementById('login-email-btn');
 const emailSignInBtn = document.getElementById('email-signin-btn');
@@ -32,12 +33,9 @@ const semanaResumen = document.getElementById('semana-resumen');
 const spaceBtns = document.querySelectorAll('.space-btn');
 const emocionCards = document.querySelectorAll('.emocion-card');
 const darkToggleBtn = document.getElementById('day-night-toggle');
-const voiceBtn = document.getElementById('voice-btn');
 const settingsBtn = document.getElementById('settings-btn');
 const settingsSection = document.getElementById('settings-section');
 const backgroundSelector = document.getElementById('background-selector');
-const zenModeBtn = document.getElementById('zen-mode-btn');
-const completionSoundToggle = document.getElementById('completion-sound-toggle');
 const avatarSelector = document.getElementById('avatar-selector');
 const floatingAddBtn = document.getElementById('floating-add-btn');
 const focusModeModal = document.getElementById('focus-mode');
@@ -79,26 +77,7 @@ let currentMonth = new Date().getMonth();
 let currentYear = new Date().getFullYear();
 let pomodoroInterval = null;
 let pomodoroTime = 25 * 60; // 25 minutes in seconds
-let isZenMode = false;
 let frequentTasks = JSON.parse(localStorage.getItem('frequentTasks')) || [];
-
-// --- DEMO DATA EMOCIONES Y TAREAS POR FECHA (puedes quitar al usar Firestore real) ---
-const emocionesPorFecha = {
-  '2025-08-02': '😊',
-  '2025-08-03': '😊',
-  '2025-08-04': '😣',
-  '2025-08-05': '😌',
-  '2025-08-06': '😢'
-};
-const tareasPorFecha = {
-  '2025-08-02': [
-    { id: '1', texto: 'Regar plantas', completada: false, subtareas: [], notas: '' },
-    { id: '2', texto: 'Meditación', completada: true, subtareas: [], notas: '' }
-  ],
-  '2025-08-04': [
-    { id: '3', texto: 'Enviar informe', completada: false, subtareas: [], notas: '' }
-  ]
-};
 
 // --- MICROINTERACCIONES Y ANIMACIONES ---
 function animarElemento(el, clase) {
@@ -106,7 +85,7 @@ function animarElemento(el, clase) {
   el.addEventListener('animationend', () => el.classList.remove(clase), { once: true });
 }
 
-// --- MODO OSCURO/CLARO (con contraste mejorado) ---
+// --- MODO OSCURO/CLARO ---
 darkToggleBtn?.addEventListener('click', () => {
   document.body.classList.toggle('day-mode');
   darkToggleBtn.textContent = document.body.classList.contains('day-mode') ? '🌙' : '☀️';
@@ -122,7 +101,6 @@ window.addEventListener('DOMContentLoaded', () => {
     pinModal.classList.remove('hidden');
     todoSection.classList.add('hidden');
   }
-  // Fondo y avatar preferido
   const savedBg = localStorage.getItem('background') || 'default';
   backgroundSelector.value = savedBg;
   backgroundSelector.dispatchEvent(new Event('change'));
@@ -130,7 +108,7 @@ window.addEventListener('DOMContentLoaded', () => {
   avatarSelector.value = savedAvatar;
 });
 
-// --- LOGIN (Firebase Auth: email y anónimo) ---
+// --- LOGIN ---
 loginBtn?.addEventListener('click', async () => {
   await signInAnonymously(auth);
 });
@@ -158,7 +136,7 @@ emailSignUpBtn?.addEventListener('click', async () => {
   }
 });
 
-// --- PIN LOCK (modo seguro local) ---
+// --- PIN LOCK ---
 pinSubmitBtn?.addEventListener('click', () => {
   const pin = pinInput.value.trim();
   if (pin === localStorage.getItem('pin')) {
@@ -166,7 +144,6 @@ pinSubmitBtn?.addEventListener('click', () => {
     todoSection.classList.remove('hidden');
   } else {
     alert('PIN incorrecto.');
-    animarElemento(pinInput, 'shake');
   }
 });
 pinSetBtn?.addEventListener('click', () => {
@@ -178,11 +155,10 @@ pinSetBtn?.addEventListener('click', () => {
     todoSection.classList.remove('hidden');
   } else {
     alert('El PIN debe ser de 4 dígitos numéricos.');
-    animarElemento(pinInput, 'shake');
   }
 });
 
-// --- AUTENTICACIÓN ----
+// --- AUTENTICACIÓN ---
 onAuthStateChanged(auth, (user) => {
   if (user) {
     userId = user.uid;
@@ -206,7 +182,7 @@ onAuthStateChanged(auth, (user) => {
   }
 });
 
-// --- TAREAS FIRESTORE: mostrar, drag&drop, checklist, subtareas, notas, animaciones soft ---
+// --- TAREAS FIRESTORE ---
 function cargarTareas() {
   const tareasRef = collection(db, 'tareas');
   onSnapshot(tareasRef, (snapshot) => {
@@ -234,7 +210,8 @@ function cargarTareas() {
     updateFrequentTasks();
   });
 }
-// Drag & Drop en calendario
+
+// --- DRAG AND DROP ---
 let draggedTask = null;
 function handleDragStart(e) {
   draggedTask = e.target;
@@ -244,7 +221,9 @@ function handleDragEnd(e) {
   e.target.classList.remove('dragging');
   draggedTask = null;
 }
-calendarGrid.addEventListener('dragover', (e) => e.preventDefault());
+calendarGrid.addEventListener('dragover', (e) => {
+  e.preventDefault();
+});
 calendarGrid.addEventListener('drop', async (e) => {
   e.preventDefault();
   if (draggedTask) {
@@ -258,7 +237,7 @@ calendarGrid.addEventListener('drop', async (e) => {
   }
 });
 
-// --- AGREGAR TAREA (botón, flotante, voz, modal) ---
+// --- AGREGAR TAREA ---
 async function addTask(texto, fecha = selectedDate || new Date().toISOString().slice(0,10)) {
   if (!texto.trim()) return;
   await addDoc(collection(db, 'tareas'), {
@@ -274,17 +253,11 @@ async function addTask(texto, fecha = selectedDate || new Date().toISOString().s
   frequentTasks.push(texto);
   localStorage.setItem('frequentTasks', JSON.stringify([...new Set(frequentTasks)].slice(-10)));
   updateFrequentTasks();
-  animarElemento(addTaskBtn, 'pulse');
 }
 addTaskBtn?.addEventListener('click', async () => {
   await addTask(taskInput.value);
   taskInput.value = '';
   if (selectedDate) renderModalTasks(selectedDate);
-});
-floatingAddBtn?.addEventListener('click', () => {
-  dayModal.classList.remove('hidden');
-  selectedDate = new Date().toISOString().slice(0,10);
-  renderModalTasks(selectedDate);
 });
 
 // --- AGREGAR TAREA DESDE MODAL ---
@@ -302,10 +275,10 @@ window.completarTarea = async (id, completo) => {
   await updateDoc(tareaRef, { completada: completo });
   if (completo) {
     lanzarConfeti();
-    animarElemento(avatarEmocional, 'bounce');
-    if ('vibrate' in navigator) navigator.vibrate(50);
-    if (completionSoundToggle?.checked) {
-      document.getElementById('completion-sound').play();
+    avatarEmocional.classList.add('bounce');
+    setTimeout(() => avatarEmocional.classList.remove('bounce'), 500);
+    if ('vibrate' in navigator) {
+      navigator.vibrate(50);
     }
     updateAvatarBasedOnProgress();
     loadStats();
@@ -320,7 +293,7 @@ window.eliminarTarea = async (id) => {
   if (selectedDate) renderModalTasks(selectedDate);
 };
 
-// --- ESPACIOS/CATEGORÍAS ---
+// --- CAMBIAR ESPACIO ---
 spaceBtns.forEach(btn => {
   btn.addEventListener('click', () => {
     spaceBtns.forEach(b => b.classList.remove('active'));
@@ -331,7 +304,7 @@ spaceBtns.forEach(btn => {
   });
 });
 
-// --- EMOCIÓN: selector, animación y guardado ---
+// --- SELECCIÓN EMOCIONAL CARDS ---
 function setEmocion(emocion) {
   emocionActual = emocion;
   actualizarAvatarEmocional(emocionActual);
@@ -342,7 +315,6 @@ function setEmocion(emocion) {
     userId,
     fecha: selectedDate || new Date().toISOString().slice(0,10)
   });
-  animarElemento(document.querySelector(`.emocion-card[data-emocion="${emocion}"]`), 'pulse');
   if (selectedDate) renderModalTasks(selectedDate);
   loadSuggestedTasks();
   loadStats();
@@ -350,8 +322,10 @@ function setEmocion(emocion) {
 emocionCards.forEach(card => {
   card.onclick = () => setEmocion(card.dataset.emocion);
 });
+
+// --- ANIMACIÓN AVATAR EMOCIONAL ---
 function actualizarAvatarEmocional(emocion) {
-  const avatarType = avatarSelector?.value || 'default';
+  const avatarType = avatarSelector.value;
   const avatars = {
     default: { feliz: '😊', triste: '😢', estresado: '😣', calmo: '😌' },
     cat: { feliz: '😺', triste: '😿', estresado: '🙀', calmo: '😸' },
@@ -359,14 +333,13 @@ function actualizarAvatarEmocional(emocion) {
     bird: { feliz: '🐦', triste: '🐥', estresado: '🐦😣', calmo: '🐦😌' }
   };
   avatarEmocional.textContent = avatars[avatarType][emocion] || avatars[avatarType].feliz;
-  animarElemento(avatarEmocional, 'anim');
+  avatarEmocional.classList.remove('anim');
+  void avatarEmocional.offsetWidth;
+  avatarEmocional.classList.add('anim');
 }
-avatarSelector?.addEventListener('change', () => {
-  localStorage.setItem('avatar', avatarSelector.value);
-  actualizarAvatarEmocional(emocionActual);
-});
+avatarEmocional.addEventListener('animationend', () => avatarEmocional.classList.remove('anim'));
 
-// --- AVATAR SEGÚN PROGRESO ---
+// --- ACTUALIZAR AVATAR SEGÚN PROGRESO ---
 async function updateAvatarBasedOnProgress() {
   const tareasRef = collection(db, 'tareas');
   onSnapshot(tareasRef, (snapshot) => {
@@ -381,27 +354,13 @@ async function updateAvatarBasedOnProgress() {
   });
 }
 
-// --- MODO CALMA (relax visual) ---
+// --- MODO CALMA ---
 modoCalmaBtn?.addEventListener('click', () => {
   document.body.classList.toggle('modo-calma');
   semanaResumen.textContent = document.body.classList.contains('modo-calma') ? 'Respirá hondo 🌿' : 'Tu semana: 😊😊😣😌😢';
 });
 
-// --- MODO ZEN (música ambiental) ---
-zenModeBtn?.addEventListener('click', () => {
-  isZenMode = !isZenMode;
-  zenModeBtn.textContent = isZenMode ? 'Desactivar Música Ambiental' : 'Activar Música Ambiental';
-  const zenMusic = document.getElementById('zen-music');
-  if (isZenMode) {
-    zenMusic.play();
-    document.body.classList.add('zen-mode');
-  } else {
-    zenMusic.pause();
-    document.body.classList.remove('zen-mode');
-  }
-});
-
-// --- MODO ENFOQUE (Pomodoro, tarea activa) ---
+// --- MODO ENFOQUE ---
 window.startFocusMode = async (taskId) => {
   const tareaRef = doc(db, 'tareas', taskId);
   const tareaDoc = await getDoc(tareaRef);
@@ -441,17 +400,19 @@ function updatePomodoroTimer() {
   const seconds = pomodoroTime % 60;
   pomodoroTimer.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
 }
-focusModeModal?.querySelector('.modal-close')?.addEventListener('click', () => {
+focusModeModal.querySelector('.modal-close').addEventListener('click', () => {
   clearInterval(pomodoroInterval);
   pomodoroStartBtn.textContent = 'Iniciar';
   focusModeModal.classList.add('hidden');
 });
 
-// --- CONFIGURACIÓN: fondo, avatar, sonido, stats ---
+// --- CONFIGURACIONES ---
 settingsBtn?.addEventListener('click', () => {
   settingsSection.classList.toggle('hidden');
   statsSection.classList.add('hidden');
 });
+
+// --- SELECCIÓN DE FONDO ---
 backgroundSelector?.addEventListener('change', () => {
   const value = backgroundSelector.value;
   const backgrounds = {
@@ -463,8 +424,23 @@ backgroundSelector?.addEventListener('change', () => {
   document.querySelector('.main-bg').style.background = backgrounds[value];
   localStorage.setItem('background', value);
 });
+window.addEventListener('DOMContentLoaded', () => {
+  const savedBg = localStorage.getItem('background') || 'default';
+  backgroundSelector.value = savedBg;
+  backgroundSelector.dispatchEvent(new Event('change'));
+});
 
-// --- TAREAS SUGERIDAS Y AUTOCOMPLETADO ---
+// --- SELECCIÓN DE AVATAR ---
+avatarSelector?.addEventListener('change', () => {
+  localStorage.setItem('avatar', avatarSelector.value);
+  actualizarAvatarEmocional(emocionActual);
+});
+window.addEventListener('DOMContentLoaded', () => {
+  const savedAvatar = localStorage.getItem('avatar') || 'default';
+  avatarSelector.value = savedAvatar;
+});
+
+// --- TAREAS SUGERIDAS ---
 function loadSuggestedTasks() {
   const suggestions = {
     feliz: ['Celebrar con amigos', 'Hacer ejercicio', 'Escribir gratitudes'],
@@ -492,22 +468,15 @@ function updateFrequentTasks() {
   });
 }
 
-// --- ESTADÍSTICAS (emociones + días productivos) ---
+// --- ESTADÍSTICAS ---
 function loadStats() {
   const emocionesRef = collection(db, 'emocion');
   onSnapshot(emocionesRef, (snapshot) => {
-    const emociones = snapshot.docs
-      .filter(docu => docu.data().userId === userId)
-      .reduce((acc, docu) => {
-        const emocion = docu.data().emocion;
-        acc[emocion] = (acc[emocion] || 0) + 1;
-        return acc;
-      }, {});
-    // ...podés graficar con Chart.js o similar...
+    // Implementar estadísticas si es necesario usando Chart.js
   });
 }
 
-// --- CONFETI AL COMPLETAR TAREA (animación suave) ---
+// --- CONFETI ---
 function lanzarConfeti() {
   const confetti = document.createElement('div');
   confetti.className = 'confetti';
@@ -529,54 +498,38 @@ function lanzarConfeti() {
   setTimeout(() => confetti.remove(), 1500);
 }
 
-// --- CALENDARIO VISUAL INTERACTIVO (con microinteracciones) ---
+// --- CALENDARIO VISUAL ---
 function renderCalendar(month, year) {
   calendarGrid.innerHTML = '';
   calendarMonth.textContent = `${getMonthName(month)} ${year}`;
   const firstDay = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
-  // Nombres de días
+
   ['L', 'M', 'X', 'J', 'V', 'S', 'D'].forEach(dia => {
     let el = document.createElement('div');
     el.className = 'calendar-day calendar-label';
     el.textContent = dia;
     calendarGrid.appendChild(el);
   });
-  // Espacios vacíos
+
   for (let i = 0; i < (firstDay === 0 ? 6 : firstDay - 1); i++) {
     let empty = document.createElement('div');
     empty.className = 'calendar-day calendar-empty';
     calendarGrid.appendChild(empty);
   }
-  // Días del mes
+
   for (let day = 1; day <= daysInMonth; day++) {
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     let el = document.createElement('div');
     el.className = 'calendar-day';
     el.dataset.date = dateStr;
     el.textContent = day;
-    // Día actual
+
     const today = new Date();
     if (today.getFullYear() === year && today.getMonth() === month && today.getDate() === day) {
       el.classList.add('today');
     }
-    // Emoji emocional
-    const emotion = emocionesPorFecha[dateStr];
-    if (emotion) {
-      let emoji = document.createElement('span');
-      emoji.textContent = emotion;
-      emoji.className = 'emoji-small';
-      el.appendChild(emoji);
-    }
-    // Tareas
-    const tareas = tareasPorFecha[dateStr] || [];
-    if (tareas.length > 0) {
-      let taskIndicator = document.createElement('span');
-      taskIndicator.className = 'task-indicator';
-      taskIndicator.textContent = tareas.length;
-      el.appendChild(taskIndicator);
-    }
-    // Selección
+
     if (selectedDate === dateStr) {
       el.classList.add('selected');
       animarElemento(el, 'pulse');
@@ -600,12 +553,33 @@ function renderCalendar(month, year) {
     calendarGrid.appendChild(el);
   }
 }
-// MODAL TASKS (para cada día)
+
+function getMonthName(m) {
+  return [
+    "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+    "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+  ][m];
+}
+prevMonthBtn.onclick = () => {
+  currentMonth--;
+  if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+  selectedDate = null;
+  renderCalendar(currentMonth, currentYear);
+  dayModal.classList.add('hidden');
+};
+nextMonthBtn.onclick = () => {
+  currentMonth++;
+  if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+  selectedDate = null;
+  renderCalendar(currentMonth, currentYear);
+  dayModal.classList.add('hidden');
+};
+
+// --- MODAL TASKS ---
 function renderModalTasks(dateStr) {
   modalDate.textContent = `Día: ${new Date(dateStr).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}`;
-  const emotion = emocionesPorFecha[dateStr];
-  modalEmotion.textContent = `Emoción: ${emotion || '😶'}`;
-  modalNotification.classList.toggle('hidden', !!emotion);
+  modalEmotion.textContent = `Emoción: 😶`;
+  modalNotification.classList.add('hidden');
   const tareasRef = collection(db, 'tareas');
   onSnapshot(tareasRef, (snapshot) => {
     const tareas = snapshot.docs
@@ -623,11 +597,9 @@ function renderModalTasks(dateStr) {
         <div>
           <button class="task-action-btn" onclick="completarTarea('${t.id}', ${!t.completada})">${t.completada ? '✔️' : '⬜'}</button>
           <button class="task-action-btn" onclick="eliminarTarea('${t.id}')">🗑️</button>
-          <button class="task-action-btn" onclick="toggleSubtasks('${t.id}')">📋</button>
         </div>
       </div>
     `).join('');
-    // Subtasks and Notes
     if (tareas.length > 0) {
       const selectedTask = tareas[0];
       modalSubtasks.innerHTML = `
@@ -645,7 +617,8 @@ function renderModalTasks(dateStr) {
     }
   });
 }
-// SUBTAREAS
+
+// --- SUBTAREAS ---
 window.addSubtask = async (taskId) => {
   const subtaskInput = document.getElementById('subtask-input');
   const texto = subtaskInput.value.trim();
@@ -670,39 +643,28 @@ window.toggleSubtask = async (taskId, index) => {
     renderModalTasks(selectedDate);
   }
 };
-// NOTAS DE TAREAS
+
+// --- NOTAS DE TAREAS ---
 async function updateTaskNotes(taskId, notes) {
   const tareaRef = doc(db, 'tareas', taskId);
   await updateDoc(tareaRef, { notas: notes });
 }
-// CERRAR MODAL
+
+// --- CERRAR MODAL ---
 modalClose?.addEventListener('click', () => {
   dayModal.classList.add('hidden');
   selectedDate = null;
   renderCalendar(currentMonth, currentYear);
 });
-// CALENDARIO NAVEGACIÓN
-function getMonthName(m) {
-  return [
-    "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-    "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
-  ][m];
-}
-prevMonthBtn.onclick = () => {
-  currentMonth--;
-  if (currentMonth < 0) { currentMonth = 11; currentYear--; }
-  selectedDate = null;
-  renderCalendar(currentMonth, currentYear);
-  dayModal.classList.add('hidden');
-};
-nextMonthBtn.onclick = () => {
-  currentMonth++;
-  if (currentMonth > 11) { currentMonth = 0; currentYear++; }
-  selectedDate = null;
-  renderCalendar(currentMonth, currentYear);
-  dayModal.classList.add('hidden');
-};
-// INICIALIZAR PWA + CALENDARIO
+
+// --- BOTÓN FLOTANTE ---
+floatingAddBtn?.addEventListener('click', () => {
+  dayModal.classList.remove('hidden');
+  selectedDate = new Date().toISOString().slice(0,10);
+  renderModalTasks(selectedDate);
+});
+
+// --- INICIALIZAR ---
 window.addEventListener('DOMContentLoaded', () => {
   renderCalendar(currentMonth, currentYear);
   cargarEmocion();
@@ -710,38 +672,8 @@ window.addEventListener('DOMContentLoaded', () => {
     navigator.serviceWorker.register('/service-worker.js');
   }
 });
-// RESUMEN SEMANAL
+
+// --- RESUMEN SEMANAL ---
 function cargarEmocion() {
   semanaResumen.innerHTML = `<span style="font-size:1.6rem;">😊😊😣😌😢</span>`;
-}
-// --- VOICE RECOGNITION (agrega tarea por voz, si disponible) ---
-const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-let recognition = null;
-if (SpeechRecognition) {
-  recognition = new SpeechRecognition();
-  recognition.lang = 'es-ES';
-  recognition.interimResults = false;
-  recognition.maxAlternatives = 1;
-}
-voiceBtn?.addEventListener('click', () => {
-  if (!recognition) {
-    alert('Lo siento, la API de reconocimiento de voz no está soportada en este navegador.');
-    return;
-  }
-  recognition.start();
-  animarElemento(voiceBtn, 'pulse');
-});
-if (recognition) {
-  recognition.onresult = (event) => {
-    const transcript = event.results[0][0].transcript.toLowerCase();
-    if (transcript.startsWith('agregar tarea') || transcript.startsWith('añadir tarea')) {
-      const taskText = transcript.replace(/agregar tarea|añadir tarea/, '').trim();
-      if (taskText) {
-        addTask(taskText);
-        taskInput.value = taskText;
-        if (selectedDate) renderModalTasks(selectedDate);
-      }
-    }
-  };
-  recognition.onend = () => animarElemento(voiceBtn, 'pulse');
 }
