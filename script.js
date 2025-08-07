@@ -732,3 +732,44 @@ window.addEventListener('DOMContentLoaded', () => {
   insertarEstilosBurbujas();
   crearBurbujasAntiEstres();
 });
+// --- Burbujas anti stress en modal ---
+function crearBurbujasAntiEstres() {
+  const cont = document.getElementById('antistress-bubbles-container');
+  if (!cont) return;
+  cont.innerHTML = '';
+  for (let i = 0; i < 10; i++) {
+    const b = document.createElement('div');
+    b.className = 'antistress-bubble';
+    b.title = '¡Haz click para explotar!';
+    b.addEventListener('pointerdown', function () {
+      b.classList.add('exploding');
+      setTimeout(() => {
+        b.remove();
+        // Cuando explotes todas, se regeneran
+        if (cont.childElementCount === 0) crearBurbujasAntiEstres();
+      }, 300);
+    });
+    cont.appendChild(b);
+  }
+}
+
+// Mostrar y ocultar modal
+const openAntistressBtn = document.getElementById('open-antistress-btn');
+const antistressModal = document.getElementById('antistress-modal');
+const closeAntistressModal = document.getElementById('close-antistress-modal');
+openAntistressBtn?.addEventListener('click', () => {
+  antistressModal.classList.remove('hidden');
+  crearBurbujasAntiEstres();
+});
+closeAntistressModal?.addEventListener('click', () => {
+  antistressModal.classList.add('hidden');
+});
+antistressModal?.addEventListener('click', (e) => {
+  if (e.target === antistressModal) {
+    antistressModal.classList.add('hidden');
+  }
+});
+
+
+let audio = new Audio('pop.mp3');
+audio.play();
