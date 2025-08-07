@@ -649,10 +649,67 @@ function cargarEmocion() {
     semanaResumen.innerHTML = `<span style="font-size:1.6rem;">😊😊😣😌😢</span>`;
 }
 
-// Generador de burbujas anti estrés
+// --- Burbujas anti-estrés 100% JS ---
+function insertarEstilosBurbujas() {
+  if (document.getElementById('antistress-bubbles-css')) return;
+  const style = document.createElement('style');
+  style.id = 'antistress-bubbles-css';
+  style.textContent = `
+.antistress-bubbles {
+  position: fixed;
+  left: 0; bottom: 0;
+  width: 100vw;
+  height: 120px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 12px;
+  z-index: 4000;
+  pointer-events: none;
+}
+.antistress-bubble {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #e0f7fa 60%, #90caf9 100%);
+  box-shadow: 0 2px 18px #90caf966, 0 0 8px #fff5;
+  cursor: pointer;
+  position: relative;
+  transition: filter .15s, transform .13s;
+  pointer-events: auto;
+  border: 2px solid #b3e5fc;
+  animation: antistress-popin .6s cubic-bezier(.24,2,.4,1);
+}
+.antistress-bubble:active,
+.antistress-bubble.exploding {
+  filter: brightness(0.92) blur(1px);
+  transform: scale(1.12);
+}
+.antistress-bubble.exploding {
+  animation: antistress-pop .23s cubic-bezier(.7,2,.7,1) forwards;
+}
+@keyframes antistress-popin {
+  0% { transform: scale(0.3); opacity: 0.6; }
+  70% { transform: scale(1.07); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes antistress-pop {
+  0% { filter: blur(0px); opacity: 1; transform: scale(1.13);}
+  90% { filter: blur(2px); opacity: 0.8;}
+  100% { filter: blur(8px); opacity: 0; transform: scale(2.6);}
+}
+  `;
+  document.head.appendChild(style);
+}
+
 function crearBurbujasAntiEstres() {
-  const cont = document.getElementById('antistress-bubbles-container');
-  if (!cont) return;
+  let cont = document.getElementById('antistress-bubbles-container');
+  if (!cont) {
+    cont = document.createElement('div');
+    cont.id = 'antistress-bubbles-container';
+    cont.className = 'antistress-bubbles';
+    document.body.appendChild(cont);
+  }
   cont.innerHTML = '';
   for (let i = 0; i < 12; i++) {
     const b = document.createElement('div');
@@ -671,5 +728,7 @@ function crearBurbujasAntiEstres() {
   }
 }
 
-// Puedes llamar esto al cargar la app:
-window.addEventListener('DOMContentLoaded', crearBurbujasAntiEstres);
+window.addEventListener('DOMContentLoaded', () => {
+  insertarEstilosBurbujas();
+  crearBurbujasAntiEstres();
+});
