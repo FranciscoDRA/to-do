@@ -58,7 +58,7 @@ const calendarTasks = document.getElementById('calendar-tasks');
 
 // --- MODAL ELEMENTS ---
 const dayModal = document.getElementById('day-modal');
-const modalClose = document.querySelector('.modal-close');
+const modalClose = document.querySelector('#day-modal .modal-close');
 const modalDate = document.getElementById('modal-date');
 const modalEmotion = document.getElementById('modal-emotion');
 const modalNotification = document.getElementById('modal-notification');
@@ -81,6 +81,7 @@ let frequentTasks = JSON.parse(localStorage.getItem('frequentTasks')) || [];
 
 // --- MICROINTERACCIONES Y ANIMACIONES ---
 function animarElemento(el, clase) {
+  if (!el) return;
   el.classList.add(clase);
   el.addEventListener('animationend', () => el.classList.remove(clase), { once: true });
 }
@@ -98,14 +99,16 @@ window.addEventListener('DOMContentLoaded', () => {
     darkToggleBtn.textContent = '🌙';
   }
   if (localStorage.getItem('pinEnabled') === 'true') {
-    pinModal.classList.remove('hidden');
-    todoSection.classList.add('hidden');
+    pinModal?.classList.remove('hidden');
+    todoSection?.classList.add('hidden');
   }
   const savedBg = localStorage.getItem('background') || 'default';
-  backgroundSelector.value = savedBg;
-  backgroundSelector.dispatchEvent(new Event('change'));
+  if (backgroundSelector) {
+    backgroundSelector.value = savedBg;
+    backgroundSelector.dispatchEvent(new Event('change'));
+  }
   const savedAvatar = localStorage.getItem('avatar') || 'default';
-  avatarSelector.value = savedAvatar;
+  if (avatarSelector) avatarSelector.value = savedAvatar;
 });
 
 // --- LOGIN ---
@@ -113,11 +116,11 @@ loginBtn?.addEventListener('click', async () => {
   await signInAnonymously(auth);
 });
 loginEmailBtn?.addEventListener('click', () => {
-  emailLoginForm.classList.toggle('hidden');
+  emailLoginForm?.classList.toggle('hidden');
 });
 emailSignInBtn?.addEventListener('click', async () => {
-  const email = emailInput.value.trim();
-  const password = passwordInput.value.trim();
+  const email = emailInput?.value.trim();
+  const password = passwordInput?.value.trim();
   if (!email || !password) return alert('Por favor, completa todos los campos.');
   try {
     await signInWithEmailAndPassword(auth, email, password);
@@ -126,8 +129,8 @@ emailSignInBtn?.addEventListener('click', async () => {
   }
 });
 emailSignUpBtn?.addEventListener('click', async () => {
-  const email = emailInput.value.trim();
-  const password = passwordInput.value.trim();
+  const email = emailInput?.value.trim();
+  const password = passwordInput?.value.trim();
   if (!email || !password) return alert('Por favor, completa todos los campos.');
   try {
     await createUserWithEmailAndPassword(auth, email, password);
@@ -138,21 +141,21 @@ emailSignUpBtn?.addEventListener('click', async () => {
 
 // --- PIN LOCK ---
 pinSubmitBtn?.addEventListener('click', () => {
-  const pin = pinInput.value.trim();
+  const pin = pinInput?.value.trim();
   if (pin === localStorage.getItem('pin')) {
-    pinModal.classList.add('hidden');
-    todoSection.classList.remove('hidden');
+    pinModal?.classList.add('hidden');
+    todoSection?.classList.remove('hidden');
   } else {
     alert('PIN incorrecto.');
   }
 });
 pinSetBtn?.addEventListener('click', () => {
-  const pin = pinInput.value.trim();
+  const pin = pinInput?.value.trim();
   if (pin.length === 4 && /^\d+$/.test(pin)) {
     localStorage.setItem('pin', pin);
     localStorage.setItem('pinEnabled', 'true');
-    pinModal.classList.add('hidden');
-    todoSection.classList.remove('hidden');
+    pinModal?.classList.add('hidden');
+    todoSection?.classList.remove('hidden');
   } else {
     alert('El PIN debe ser de 4 dígitos numéricos.');
   }
@@ -164,7 +167,7 @@ onAuthStateChanged(auth, (user) => {
     userId = user.uid;
     loginSection?.classList.add('hidden');
     if (localStorage.getItem('pinEnabled') === 'true') {
-      pinModal.classList.remove('hidden');
+      pinModal?.classList.remove('hidden');
     } else {
       todoSection?.classList.remove('hidden');
     }
@@ -178,7 +181,7 @@ onAuthStateChanged(auth, (user) => {
   } else {
     loginSection?.classList.remove('hidden');
     todoSection?.classList.add('hidden');
-    pinModal.classList.add('hidden');
+    pinModal?.classList.add('hidden');
   }
 });
 
@@ -186,7 +189,7 @@ onAuthStateChanged(auth, (user) => {
 function cargarTareas() {
   const tareasRef = collection(db, 'tareas');
   onSnapshot(tareasRef, (snapshot) => {
-    taskList.innerHTML = '';
+    if (taskList) taskList.innerHTML = '';
     snapshot.docs
       .filter(docu => docu.data().userId === userId && docu.data().space === currentSpace)
       .forEach(docu => {
@@ -205,7 +208,7 @@ function cargarTareas() {
         `;
         li.addEventListener('dragstart', handleDragStart);
         li.addEventListener('dragend', handleDragEnd);
-        taskList.appendChild(li);
+        taskList?.appendChild(li);
       });
     updateFrequentTasks();
   });
@@ -221,10 +224,10 @@ function handleDragEnd(e) {
   e.target.classList.remove('dragging');
   draggedTask = null;
 }
-calendarGrid.addEventListener('dragover', (e) => {
+calendarGrid?.addEventListener('dragover', (e) => {
   e.preventDefault();
 });
-calendarGrid.addEventListener('drop', async (e) => {
+calendarGrid?.addEventListener('drop', async (e) => {
   e.preventDefault();
   if (draggedTask) {
     const dateStr = e.target.dataset.date;
@@ -274,7 +277,7 @@ window.completarTarea = async (id, completo) => {
   const tareaRef = doc(db, 'tareas', id);
   await updateDoc(tareaRef, { completada: completo });
   if (completo) {
-    lanzarConfeti();
+    lanzarBurbujas();
     avatarEmocional.classList.add('bounce');
     setTimeout(() => avatarEmocional.classList.remove('bounce'), 500);
     if ('vibrate' in navigator) {
@@ -309,7 +312,7 @@ function setEmocion(emocion) {
   emocionActual = emocion;
   actualizarAvatarEmocional(emocionActual);
   emocionCards.forEach(card => card.classList.remove('selected'));
-  document.querySelector(`.emocion-card[data-emocion="${emocion}"]`).classList.add('selected');
+  document.querySelector(`.emocion-card[data-emocion="${emocion}"]`)?.classList.add('selected');
   addDoc(collection(db, 'emocion'), {
     emocion: emocionActual,
     userId,
@@ -325,19 +328,21 @@ emocionCards.forEach(card => {
 
 // --- ANIMACIÓN AVATAR EMOCIONAL ---
 function actualizarAvatarEmocional(emocion) {
-  const avatarType = avatarSelector.value;
+  const avatarType = avatarSelector?.value || 'default';
   const avatars = {
     default: { feliz: '😊', triste: '😢', estresado: '😣', calmo: '😌' },
     cat: { feliz: '😺', triste: '😿', estresado: '🙀', calmo: '😸' },
     dog: { feliz: '🐶', triste: '🐕', estresado: '🐶😓', calmo: '🐕😊' },
     bird: { feliz: '🐦', triste: '🐥', estresado: '🐦😣', calmo: '🐦😌' }
   };
-  avatarEmocional.textContent = avatars[avatarType][emocion] || avatars[avatarType].feliz;
-  avatarEmocional.classList.remove('anim');
-  void avatarEmocional.offsetWidth;
-  avatarEmocional.classList.add('anim');
+  if (avatarEmocional) {
+    avatarEmocional.textContent = avatars[avatarType][emocion] || avatars[avatarType].feliz;
+    avatarEmocional.classList.remove('anim');
+    void avatarEmocional.offsetWidth;
+    avatarEmocional.classList.add('anim');
+  }
 }
-avatarEmocional.addEventListener('animationend', () => avatarEmocional.classList.remove('anim'));
+avatarEmocional?.addEventListener('animationend', () => avatarEmocional.classList.remove('anim'));
 
 // --- ACTUALIZAR AVATAR SEGÚN PROGRESO ---
 async function updateAvatarBasedOnProgress() {
@@ -357,7 +362,8 @@ async function updateAvatarBasedOnProgress() {
 // --- MODO CALMA ---
 modoCalmaBtn?.addEventListener('click', () => {
   document.body.classList.toggle('modo-calma');
-  semanaResumen.textContent = document.body.classList.contains('modo-calma') ? 'Respirá hondo 🌿' : 'Tu semana: 😊😊😣😌😢';
+  if (semanaResumen)
+    semanaResumen.textContent = document.body.classList.contains('modo-calma') ? 'Respirá hondo 🌿' : 'Tu semana: 😊😊😣😌😢';
 });
 
 // --- MODO ENFOQUE ---
@@ -374,6 +380,7 @@ window.startFocusMode = async (taskId) => {
 pomodoroStartBtn?.addEventListener('click', () => {
   if (pomodoroInterval) {
     clearInterval(pomodoroInterval);
+    pomodoroInterval = null;
     pomodoroStartBtn.textContent = 'Iniciar';
   } else {
     pomodoroInterval = setInterval(() => {
@@ -381,6 +388,7 @@ pomodoroStartBtn?.addEventListener('click', () => {
       updatePomodoroTimer();
       if (pomodoroTime <= 0) {
         clearInterval(pomodoroInterval);
+        pomodoroInterval = null;
         pomodoroStartBtn.textContent = 'Iniciar';
         if ('vibrate' in navigator) navigator.vibrate(200);
         alert('¡Pomodoro completado!');
@@ -391,25 +399,28 @@ pomodoroStartBtn?.addEventListener('click', () => {
 });
 pomodoroResetBtn?.addEventListener('click', () => {
   clearInterval(pomodoroInterval);
+  pomodoroInterval = null;
   pomodoroTime = 25 * 60;
   updatePomodoroTimer();
   pomodoroStartBtn.textContent = 'Iniciar';
 });
 function updatePomodoroTimer() {
+  if (!pomodoroTimer) return;
   const minutes = Math.floor(pomodoroTime / 60);
   const seconds = pomodoroTime % 60;
   pomodoroTimer.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
 }
-focusModeModal.querySelector('.modal-close').addEventListener('click', () => {
+focusModeModal?.querySelector('.modal-close')?.addEventListener('click', () => {
   clearInterval(pomodoroInterval);
+  pomodoroInterval = null;
   pomodoroStartBtn.textContent = 'Iniciar';
   focusModeModal.classList.add('hidden');
 });
 
 // --- CONFIGURACIONES ---
 settingsBtn?.addEventListener('click', () => {
-  settingsSection.classList.toggle('hidden');
-  statsSection.classList.add('hidden');
+  settingsSection?.classList.toggle('hidden');
+  statsSection?.classList.add('hidden');
 });
 
 // --- SELECCIÓN DE FONDO ---
@@ -421,13 +432,16 @@ backgroundSelector?.addEventListener('change', () => {
     forest: 'radial-gradient(circle at 50% 50%, #2e8b57 0%, #228b22 100%)',
     sunset: 'radial-gradient(circle at 50% 50%, #ff4500 0%, #ff8c00 100%)'
   };
-  document.querySelector('.main-bg').style.background = backgrounds[value];
+  const bg = document.querySelector('.main-bg');
+  if (bg) bg.style.background = backgrounds[value];
   localStorage.setItem('background', value);
 });
 window.addEventListener('DOMContentLoaded', () => {
   const savedBg = localStorage.getItem('background') || 'default';
-  backgroundSelector.value = savedBg;
-  backgroundSelector.dispatchEvent(new Event('change'));
+  if (backgroundSelector) {
+    backgroundSelector.value = savedBg;
+    backgroundSelector.dispatchEvent(new Event('change'));
+  }
 });
 
 // --- SELECCIÓN DE AVATAR ---
@@ -437,7 +451,7 @@ avatarSelector?.addEventListener('change', () => {
 });
 window.addEventListener('DOMContentLoaded', () => {
   const savedAvatar = localStorage.getItem('avatar') || 'default';
-  avatarSelector.value = savedAvatar;
+  if (avatarSelector) avatarSelector.value = savedAvatar;
 });
 
 // --- TAREAS SUGERIDAS ---
@@ -449,6 +463,7 @@ function loadSuggestedTasks() {
     calmo: ['Leer un libro', 'Pasear al aire libre', 'Planificar el día']
   };
   const datalist = document.getElementById('task-suggestions');
+  if (!datalist) return;
   datalist.innerHTML = '';
   [...(suggestions[emocionActual] || []), ...frequentTasks].forEach(task => {
     const option = document.createElement('option');
@@ -458,6 +473,7 @@ function loadSuggestedTasks() {
 }
 function updateFrequentTasks() {
   const datalist = document.getElementById('task-suggestions');
+  if (!datalist) return;
   frequentTasks = JSON.parse(localStorage.getItem('frequentTasks')) || [];
   frequentTasks.forEach(task => {
     if (!Array.from(datalist.options).some(opt => opt.value === task)) {
@@ -476,30 +492,31 @@ function loadStats() {
   });
 }
 
-// --- CONFETI ---
-function lanzarConfeti() {
-  const confetti = document.createElement('div');
-  confetti.className = 'confetti';
-  for (let i = 0; i < 20; i++) {
+// --- BURBUJAS DE AIRE EXPLOTANDO ---
+function lanzarBurbujas() {
+  const bubbles = document.createElement('div');
+  bubbles.className = 'bubbles';
+  for (let i = 0; i < 16; i++) {
     const span = document.createElement('span');
-    span.style = `
-      position: absolute;
-      left: ${Math.random() * 98}vw;
-      top: ${Math.random() * 98}vh;
-      font-size: ${Math.random() * 0.8 + 0.8}rem;
-      color: hsl(${Math.random() * 360},90%,65%);
-      opacity: 0.7;
-      animation: confeti-fall 1.5s ease-out forwards;
-    `;
-    span.textContent = ['✨', '🎉', '⭐'][Math.floor(Math.random() * 3)];
-    confetti.appendChild(span);
+    span.className = 'bubble';
+    span.style.left = `${Math.random() * 100}vw`;
+    span.style.top = `${Math.random() * 80 + 10}vh`;
+    span.style.width = span.style.height = `${Math.random() * 18 + 16}px`;
+    span.style.background = `rgba(190,220,255,0.${Math.floor(Math.random()*5+5)})`;
+    span.style.animationDelay = `${Math.random()}s`;
+    span.addEventListener('animationend', () => span.remove());
+    bubbles.appendChild(span);
+    setTimeout(() => {
+      span.classList.add('explode');
+    }, 400 + Math.random() * 400);
   }
-  document.body.appendChild(confetti);
-  setTimeout(() => confetti.remove(), 1500);
+  document.body.appendChild(bubbles);
+  setTimeout(() => bubbles.remove(), 1600);
 }
 
 // --- CALENDARIO VISUAL ---
 function renderCalendar(month, year) {
+  if (!calendarGrid || !calendarMonth) return;
   calendarGrid.innerHTML = '';
   calendarMonth.textContent = `${getMonthName(month)} ${year}`;
   const firstDay = new Date(year, month, 1).getDay();
@@ -522,7 +539,6 @@ function renderCalendar(month, year) {
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     let el = document.createElement('div');
     el.className = 'calendar-day';
-    el.dataset.date = dateStr;
     el.textContent = day;
 
     const today = new Date();
@@ -577,6 +593,7 @@ nextMonthBtn.onclick = () => {
 
 // --- MODAL TASKS ---
 function renderModalTasks(dateStr) {
+  if (!modalDate || !modalEmotion || !modalNotification || !modalTasks) return;
   modalDate.textContent = `Día: ${new Date(dateStr).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}`;
   modalEmotion.textContent = `Emoción: 😶`;
   modalNotification.classList.add('hidden');
@@ -587,67 +604,20 @@ function renderModalTasks(dateStr) {
       .map(docu => ({ id: docu.id, ...docu.data() }));
     if (tareas.length === 0) {
       modalTasks.innerHTML = `<span style="opacity:.5;">Sin tareas para este día</span>`;
-      modalSubtasks.innerHTML = '';
-      modalTaskNotes.value = '';
+      if (modalSubtasks) modalSubtasks.innerHTML = '';
+      if (modalTaskNotes) modalTaskNotes.value = '';
       return;
     }
     modalTasks.innerHTML = tareas.map(t => `
-      <div>
-        ${t.completada ? '✔️' : '⬜'} ${t.texto}
-        <div>
+      <div class="calendar-task${t.completada ? ' complete' : ''}">
+        <span>${t.completada ? '✔️' : '⬜'} ${t.texto}</span>
+        <div class="task-actions">
           <button class="task-action-btn" onclick="completarTarea('${t.id}', ${!t.completada})">${t.completada ? '✔️' : '⬜'}</button>
           <button class="task-action-btn" onclick="eliminarTarea('${t.id}')">🗑️</button>
         </div>
       </div>
     `).join('');
-    if (tareas.length > 0) {
-      const selectedTask = tareas[0];
-      modalSubtasks.innerHTML = `
-        <input id="subtask-input" placeholder="Subtarea..." />
-        <button onclick="addSubtask('${selectedTask.id}')">+</button>
-        ${selectedTask.subtareas.map((sub, i) => `
-          <div>
-            <input type="checkbox" ${sub.completada ? 'checked' : ''} onchange="toggleSubtask('${selectedTask.id}',${i})" />
-            ${sub.texto}
-          </div>
-        `).join('')}
-      `;
-      modalTaskNotes.value = selectedTask.notas || '';
-      modalTaskNotes.onchange = () => updateTaskNotes(selectedTask.id, modalTaskNotes.value);
-    }
   });
-}
-
-// --- SUBTAREAS ---
-window.addSubtask = async (taskId) => {
-  const subtaskInput = document.getElementById('subtask-input');
-  const texto = subtaskInput.value.trim();
-  if (!texto) return;
-  const tareaRef = doc(db, 'tareas', taskId);
-  const tareaDoc = await getDoc(tareaRef);
-  if (tareaDoc.exists()) {
-    const subtareas = tareaDoc.data().subtareas || [];
-    subtareas.push({ texto, completada: false });
-    await updateDoc(tareaRef, { subtareas });
-    renderModalTasks(selectedDate);
-  }
-  subtaskInput.value = '';
-};
-window.toggleSubtask = async (taskId, index) => {
-  const tareaRef = doc(db, 'tareas', taskId);
-  const tareaDoc = await getDoc(tareaRef);
-  if (tareaDoc.exists()) {
-    const subtareas = tareaDoc.data().subtareas || [];
-    subtareas[index].completada = !subtareas[index].completada;
-    await updateDoc(tareaRef, { subtareas });
-    renderModalTasks(selectedDate);
-  }
-};
-
-// --- NOTAS DE TAREAS ---
-async function updateTaskNotes(taskId, notes) {
-  const tareaRef = doc(db, 'tareas', taskId);
-  await updateDoc(tareaRef, { notas: notes });
 }
 
 // --- CERRAR MODAL ---
@@ -675,5 +645,6 @@ window.addEventListener('DOMContentLoaded', () => {
 
 // --- RESUMEN SEMANAL ---
 function cargarEmocion() {
-  semanaResumen.innerHTML = `<span style="font-size:1.6rem;">😊😊😣😌😢</span>`;
+  if (semanaResumen)
+    semanaResumen.innerHTML = `<span style="font-size:1.6rem;">😊😊😣😌😢</span>`;
 }
