@@ -877,18 +877,17 @@ h1 {
   100% { }
 }
 
-
+/* Modal de burbujas anti-stress */
 .antistress-bubbles {
-  position: fixed;
-  left: 0; bottom: 0;
-  width: 100vw;
-  height: 120px;
+  width: 100%;
+  min-height: 100px;
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
   align-items: flex-end;
-  gap: 12px;
-  z-index: 4000;
-  pointer-events: none;
+  gap: 16px;
+  margin-top: 24px;
+  margin-bottom: 12px;
 }
 .antistress-bubble {
   width: 48px;
@@ -920,4 +919,13 @@ h1 {
   0% { filter: blur(0px); opacity: 1; transform: scale(1.13);}
   90% { filter: blur(2px); opacity: 0.8;}
   100% { filter: blur(8px); opacity: 0; transform: scale(2.6);}
+}
+.antistress-modal-content {
+  max-width: 350px;
+  text-align: center;
+}
+.antistress-tip {
+  color: #90caf9;
+  font-size: 1rem;
+  margin: 10px 0 5px 0;
 }
