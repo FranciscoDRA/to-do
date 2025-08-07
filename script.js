@@ -648,3 +648,28 @@ function cargarEmocion() {
   if (semanaResumen)
     semanaResumen.innerHTML = `<span style="font-size:1.6rem;">😊😊😣😌😢</span>`;
 }
+
+// Generador de burbujas anti estrés
+function crearBurbujasAntiEstres() {
+  const cont = document.getElementById('antistress-bubbles-container');
+  if (!cont) return;
+  cont.innerHTML = '';
+  for (let i = 0; i < 12; i++) {
+    const b = document.createElement('div');
+    b.className = 'antistress-bubble';
+    b.title = '¡Haz click para explotar!';
+    b.addEventListener('pointerdown', function () {
+      b.classList.add('exploding');
+      // Sonido pop opcional:
+      // let audio = new Audio('pop.mp3'); audio.play();
+      setTimeout(() => {
+        b.remove();
+        if (cont.childElementCount === 0) crearBurbujasAntiEstres();
+      }, 300);
+    });
+    cont.appendChild(b);
+  }
+}
+
+// Puedes llamar esto al cargar la app:
+window.addEventListener('DOMContentLoaded', crearBurbujasAntiEstres);
