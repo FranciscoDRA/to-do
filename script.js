@@ -649,7 +649,7 @@ function cargarEmocion() {
     semanaResumen.innerHTML = `<span style="font-size:1.6rem;">😊😊😣😌😢</span>`;
 }
 
-// --- Burbujas anti-estrés 100% JS ---
+// --- Burbujas anti-estrés ---
 function insertarEstilosBurbujas() {
   if (document.getElementById('antistress-bubbles-css')) return;
   const style = document.createElement('style');
@@ -703,37 +703,6 @@ function insertarEstilosBurbujas() {
 }
 
 function crearBurbujasAntiEstres() {
-  let cont = document.getElementById('antistress-bubbles-container');
-  if (!cont) {
-    cont = document.createElement('div');
-    cont.id = 'antistress-bubbles-container';
-    cont.className = 'antistress-bubbles';
-    document.body.appendChild(cont);
-  }
-  cont.innerHTML = '';
-  for (let i = 0; i < 12; i++) {
-    const b = document.createElement('div');
-    b.className = 'antistress-bubble';
-    b.title = '¡Haz click para explotar!';
-    b.addEventListener('pointerdown', function () {
-      b.classList.add('exploding');
-      // Sonido pop opcional:
-      // let audio = new Audio('pop.mp3'); audio.play();
-      setTimeout(() => {
-        b.remove();
-        if (cont.childElementCount === 0) crearBurbujasAntiEstres();
-      }, 300);
-    });
-    cont.appendChild(b);
-  }
-}
-
-window.addEventListener('DOMContentLoaded', () => {
-  insertarEstilosBurbujas();
-  crearBurbujasAntiEstres();
-});
-// --- Burbujas anti stress en modal ---
-function crearBurbujasAntiEstres() {
   const cont = document.getElementById('antistress-bubbles-container');
   if (!cont) return;
   cont.innerHTML = '';
@@ -745,7 +714,6 @@ function crearBurbujasAntiEstres() {
       b.classList.add('exploding');
       setTimeout(() => {
         b.remove();
-        // Cuando explotes todas, se regeneran
         if (cont.childElementCount === 0) crearBurbujasAntiEstres();
       }, 300);
     });
@@ -770,6 +738,6 @@ antistressModal?.addEventListener('click', (e) => {
   }
 });
 
-
-let audio = new Audio('pop.mp3');
-audio.play();
+window.addEventListener('DOMContentLoaded', () => {
+  insertarEstilosBurbujas();
+});
