@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TaskGarden</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#191932">
+</head>
+<body>
+  <div class="main-bg"></div>
+  <div id="login-section" class="hidden">
+    <button id="login-anon-btn">Iniciar sesión anónima</button>
+    <button id="login-email-btn">Iniciar sesión con email</button>
+    <div id="email-login-form" class="hidden">
+      <input type="email" id="email-input" placeholder="Email">
+      <input type="password" id="password-input" placeholder="Contraseña">
+      <button id="email-signin-btn">Iniciar sesión</button>
+      <button id="email-signup-btn">Registrarse</button>
+    </div>
+  </div>
+  <div id="pin-modal" class="modal hidden">
+    <div class="modal-content">
+      <span class="modal-close">&times;</span>
+      <h2>Ingresar PIN</h2>
+      <input type="password" id="pin-input" placeholder="Ingresa tu PIN (4 dígitos)">
+      <button id="pin-submit-btn">Desbloquear</button>
+      <button id="pin-set-btn">Configurar PIN</button>
+    </div>
+  </div>
+  <div id="app" class="hidden">
+    <header>
+      <div>
+        <h1>TaskGarden</h1>
+        <span class="subtitle">Tu espacio mental. Organiza, respira, evoluciona.</span>
+      </div>
+      <div id="avatar-emocional">😊</div>
+      <div>
+        <button id="modo-calma-btn">🧘</button>
+        <button id="day-night-toggle">🌙</button>
+        <button id="voice-btn">🎙️</button>
+        <button id="settings-btn">⚙️</button>
+      </div>
+    </header>
+    <section id="emocional-cards">
+      <div class="emocion-card" data-emocion="feliz"><span class="emoji">😊</span>Feliz</div>
+      <div class="emocion-card" data-emocion="triste"><span class="emoji">😢</span>Triste</div>
+      <div class="emocion-card" data-emocion="estresado"><span class="emoji">😣</span>Estresado</div>
+      <div class="emocion-card" data-emocion="calmo"><span class="emoji">😌</span>Calmo</div>
+    </section>
+    <section id="add-task" class="input-row">
+      <div class="input-group">
+        <input type="text" id="task-input" placeholder="Nueva tarea..." list="task-suggestions">
+        <datalist id="task-suggestions"></datalist>
+        <button id="add-task-btn">+</button>
+      </div>
+    </section>
+    <section id="spaces">
+      <button class="space-btn active" data-space="personal">Personal</button>
+      <button class="space-btn" data-space="trabajo">Trabajo</button>
+      <button class="space-btn" data-space="creatividad">Creatividad</button>
+    </section>
+    <section id="calendar-section">
+      <div class="calendar-container">
+        <div class="calendar-header">
+          <button class="calendar-nav" id="prev-month">&lt;</button>
+          <span id="calendar-month">Agosto 2025</span>
+          <button class="calendar-nav" id="next-month">&gt;</button>
+        </div>
+        <div id="calendar-grid" class="calendar-grid"></div>
+      </div>
+      <div id="calendar-tasks"></div>
+    </section>
+    <section id="task-list-section">
+      <ul id="task-list"></ul>
+    </section>
+    <section id="weekly-emotion-report">
+      <span class="report-title">Tu semana emocional</span>
+      <div class="emotion-bar">
+        <span class="emotion-day">L 😊</span>
+        <span class="emotion-day">M 😊</span>
+        <span class="emotion-day">X 😣</span>
+        <span class="emotion-day">J 😌</span>
+        <span class="emotion-day">V 😢</span>
+        <span class="emotion-day">S -</span>
+        <span class="emotion-day">D -</span>
+      </div>
+    </section>
+    <section id="stats-section" class="hidden">
+      <h2>Estadísticas</h2>
+      <div id="stats-emotions"></div>
+      <div id="stats-productivity"></div>
+    </section>
+    <section id="settings-section" class="hidden">
+      <h2>Configuraciones</h2>
+      <div class="settings-group">
+        <label>Fondo:</label>
+        <select id="background-selector">
+          <option value="default">Gradiente Predeterminado</option>
+          <option value="ocean">Océano</option>
+          <option value="forest">Bosque</option>
+          <option value="sunset">Atardecer</option>
+        </select>
+      </div>
+      <div class="settings-group">
+        <label>Modo Zen:</label>
+        <button id="zen-mode-btn">Activar Música Ambiental</button>
+      </div>
+      <div class="settings-group">
+        <label>Sonido al Completar:</label>
+        <input type="checkbox" id="completion-sound-toggle" checked>
+      </div>
+      <div class="settings-group">
+        <label>Avatar:</label>
+        <select id="avatar-selector">
+          <option value="default">Predeterminado</option>
+          <option value="cat">Gato</option>
+          <option value="dog">Perro</option>
+          <option value="bird">Pájaro</option>
+        </select>
+      </div>
+    </section>
+    <button id="floating-add-btn" class="floating-btn">+</button>
+    <footer>Tu semana: 😊😊😣😌😢</footer>
+  </div>
+  <div id="focus-mode" class="modal hidden">
+    <div class="modal-content">
+      <span class="modal-close">&times;</span>
+      <h2>Modo Enfoque</h2>
+      <div id="focus-task"></div>
+      <div id="pomodoro-timer">25:00</div>
+      <button id="pomodoro-start-btn">Iniciar</button>
+      <button id="pomodoro-reset-btn">Reiniciar</button>
+    </div>
+  </div>
+  <div id="day-modal" class="modal hidden">
+    <div class="modal-content">
+      <span class="modal-close">&times;</span>
+      <h2 id="modal-date">Día seleccionado</h2>
+      <p id="modal-emotion">Emoción: 😊</p>
+      <p id="modal-notification" class="hidden">Hoy no registraste cómo te sentís 🧠</p>
+      <div class="modal-input-group">
+        <input type="text" id="modal-task-input" placeholder="Nueva tarea...">
+        <button id="modal-add-task-btn">+</button>
+      </div>
+      <div id="modal-subtasks"></div>
+      <textarea id="modal-task-notes" placeholder="Notas de la tarea..."></textarea>
+      <div id="modal-tasks">Tareas del día</div>
+    </div>
+  </div>
+  <audio id="completion-sound" src="completion.mp3"></audio>
+  <audio id="zen-music" src="zen-music.mp3" loop></audio>
+  <script type="module" src="script.js"></script>
+</body>
+</html>
