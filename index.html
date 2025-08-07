@@ -111,6 +111,10 @@
           <option value="bird">Pájaro</option>
         </select>
       </div>
+      <div class="settings-group">
+        <label>Bolitas Anti-Stress:</label>
+        <button id="open-antistress-btn">Abrir</button>
+      </div>
     </section>
     <button id="floating-add-btn" class="floating-btn">+</button>
     <footer>Tu semana: 😊😊😣😌😢</footer>
@@ -140,8 +144,15 @@
       <div id="modal-tasks">Tareas del día</div>
     </div>
   </div>
-  <div id="antistress-bubbles-container" class="antistress-bubbles"></div>
+  <!-- MODAL DE BURBUJAS ANTI STRESS -->
+  <div id="antistress-modal" class="modal hidden">
+    <div class="modal-content antistress-modal-content">
+      <span class="modal-close" id="close-antistress-modal">&times;</span>
+      <h2>Burbujas Anti-Stress</h2>
+      <div id="antistress-bubbles-container" class="antistress-bubbles"></div>
+      <p class="antistress-tip">¡Haz click en las burbujas para explotarlas!</p>
+    </div>
+  </div>
   <script type="module" src="script.js"></script>
 </body>
 </html>
-
