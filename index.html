@@ -5,14 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>TaskGarden</title>
   <link rel="stylesheet" href="styles.css"/>
-  <!-- Manifest removido -->
-  <!-- Service Worker removido -->
+  <!-- Manifest/Service Worker removidos -->
   <meta name="theme-color" content="#191932"/>
 </head>
 <body>
   <div class="main-bg"></div>
 
-  <!-- PIN (opcional, se activa desde el mismo modal) -->
+  <!-- PIN (opcional, local) -->
   <div id="pin-modal" class="modal hidden">
     <div class="modal-content">
       <span class="modal-close" data-close="pin-modal">&times;</span>
@@ -34,7 +33,8 @@
         <span class="subtitle">Tu espacio mental. Organiza, respira, evoluciona.</span>
       </div>
       <div id="avatar-emocional">😊</div>
-      <div>
+      <div class="header-actions">
+        <div id="today-counter" class="today-chip" title="Tareas completadas hoy">Hoy: 0 ✔️</div>
         <button id="modo-calma-btn" title="Modo calma">🧘</button>
         <button id="day-night-toggle" title="Modo día/noche">🌙</button>
         <button id="settings-btn" title="Configuraciones">⚙️</button>
@@ -50,9 +50,9 @@
 
     <section id="add-task" class="input-row">
       <div class="input-group">
-        <input type="text" id="task-input" placeholder="Nueva tarea..." list="task-suggestions"/>
+        <input type="text" id="task-input" placeholder="Nueva tarea..." list="task-suggestions" autocomplete="off"/>
         <datalist id="task-suggestions"></datalist>
-        <button id="add-task-btn">+</button>
+        <button id="add-task-btn" aria-label="Agregar tarea">+</button>
       </div>
     </section>
 
@@ -65,9 +65,9 @@
     <section id="calendar-section">
       <div class="calendar-container">
         <div class="calendar-header">
-          <button class="calendar-nav" id="prev-month">&lt;</button>
+          <button class="calendar-nav" id="prev-month" aria-label="Mes anterior">&lt;</button>
           <span id="calendar-month">Agosto 2025</span>
-          <button class="calendar-nav" id="next-month">&gt;</button>
+          <button class="calendar-nav" id="next-month" aria-label="Mes siguiente">&gt;</button>
         </div>
         <div id="calendar-grid" class="calendar-grid"></div>
       </div>
@@ -99,6 +99,7 @@
 
     <section id="settings-section" class="hidden">
       <h2>Configuraciones</h2>
+
       <div class="settings-group">
         <label>Fondo:</label>
         <select id="background-selector">
@@ -108,6 +109,7 @@
           <option value="sunset">Atardecer</option>
         </select>
       </div>
+
       <div class="settings-group">
         <label>Avatar:</label>
         <select id="avatar-selector">
@@ -117,17 +119,31 @@
           <option value="bird">Pájaro</option>
         </select>
       </div>
+
+      <div class="settings-group">
+        <label>Auto Día/Noche:</label>
+        <input type="checkbox" id="auto-theme-toggle"/>
+        <small>Se adapta a la hora local (7–19h día)</small>
+      </div>
+
+      <div class="settings-group">
+        <label>Sonido al completar:</label>
+        <input type="checkbox" id="sound-toggle"/>
+        <small>Un “beep” suave al marcar ✔️</small>
+      </div>
+
       <div class="settings-group">
         <label>Bolitas Anti-Stress:</label>
         <button id="open-antistress-btn">Abrir</button>
       </div>
+
       <div class="settings-group">
         <label>Bloqueo con PIN:</label>
         <button id="open-pin-btn">Abrir</button>
       </div>
     </section>
 
-    <button id="floating-add-btn" class="floating-btn">+</button>
+    <button id="floating-add-btn" class="floating-btn" aria-label="Abrir tareas de hoy">+</button>
     <footer id="semana-resumen">Tu semana: 😊😊😣😌😢</footer>
   </div>
 
@@ -170,8 +186,6 @@
     </div>
   </div>
 
- <script type="module" src="script.js"></script>
-
+  <script src="script.js"></script>
 </body>
 </html>
-
