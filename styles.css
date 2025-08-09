@@ -1,4 +1,3 @@
-/* === TU CSS ORIGINAL SIN CAMBIOS RELEVANTES === */
 :root {
   --primary: #4963e2;
   --primary-dark: #252859;
@@ -18,7 +17,6 @@
   --radius-sm: 12px;
   --font: 'Inter', Arial, sans-serif;
   --transition: 0.22s cubic-bezier(.47,1.64,.41,.8);
-  --pill-gradient: linear-gradient(90deg, #4963e2 0%, #6d7cf4 100%);
   --pill-bg: #232450cc;
   --card-bg: #232450cc;
   --input-bg: #191932;
@@ -38,6 +36,12 @@ body {
   justify-content: center;
 }
 
+.main-bg {
+  position: fixed; z-index: 0; width: 100vw; height: 100vh; top: 0; left: 0;
+  background: radial-gradient(circle at 70% 8%, #232450 0%, #191932 100%);
+  transition: background 0.5s ease;
+}
+
 body.day-mode .main-bg { background: radial-gradient(circle at 70% 8%, #6d7cf4 0%, #e6e9ff 100%); }
 body.day-mode #app { background: #e6e9ffcc; border: 1.5px solid #6d7cf422; }
 body.day-mode .calendar-container,
@@ -50,20 +54,6 @@ body.day-mode .space-btn,
 body.day-mode #calendar-tasks,
 body.day-mode .emotion-bar { background: #e6e9ffcc; }
 
-body.zen-mode .main-bg { animation: zenGradient 10s ease-in-out infinite; }
-@keyframes zenGradient {
-  0% { background: radial-gradient(circle at 70% 8%, #232450 0%, #191932 100%); }
-  50% { background: radial-gradient(circle at 50% 50%, #1e90ff 0%, #00b7eb 100%); }
-  100% { background: radial-gradient(circle at 70% 8%, #232450 0%, #191932 100%); }
-}
-
-.main-bg {
-  position: fixed; z-index: 0; width: 100vw; height: 100vh; top: 0; left: 0;
-  background: radial-gradient(circle at 70% 8%, #232450 0%, #191932 100%);
-  transition: background 0.5s ease;
-}
-
-/* APP CONTAINER */
 #app {
   position: relative; z-index: 1; max-width: 440px; width: 100%;
   margin: 60px auto; padding: 2rem; background: var(--surface);
@@ -74,10 +64,12 @@ body.zen-mode .main-bg { animation: zenGradient 10s ease-in-out infinite; }
 }
 @keyframes fadeInApp { from {opacity:0; transform:translateY(20px);} to {opacity:1; transform:translateY(0);} }
 
-/* HEADER */
 header { width:100%; display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:2rem; }
+.header-actions { display:flex; align-items:center; gap:.6rem; }
+
 h1 { font-weight:900; font-size:2.4rem; letter-spacing:-1px; color:var(--text-title); margin:0; }
 .subtitle { font-size:1.05rem; color:var(--text-main); font-weight:400; margin-left:2px; display:block; }
+
 #avatar-emocional {
   width:62px;height:62px;border-radius:50%; background: radial-gradient(circle at 60% 40%, var(--emoji-bg) 78%, #fff 100%);
   box-shadow: var(--shadow-glow); display:flex; align-items:center; justify-content:center;
@@ -97,7 +89,10 @@ h1 { font-weight:900; font-size:2.4rem; letter-spacing:-1px; color:var(--text-ti
 #day-night-toggle.rotate{ animation: rotate-icon .3s ease; }
 @keyframes rotate-icon{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
 
-/* EMOCIONES */
+.today-chip{
+  background:#ffffff1a; color:#ffe585; border:1.5px solid #ffe58566; border-radius:999px; padding:.3rem .7rem; font-weight:700; font-size:.9rem;
+}
+
 #emocional-cards { width:100%; display:grid; grid-template-columns:repeat(4,1fr); gap:1rem; margin-bottom:2rem; justify-items:center; align-items:center; }
 .emocion-card {
   background: var(--card-bg); border-radius: var(--radius-lg); box-shadow: 0 2px 18px rgba(20,20,30,0.15);
@@ -111,9 +106,7 @@ h1 { font-weight:900; font-size:2.4rem; letter-spacing:-1px; color:var(--text-ti
 }
 .emocion-card .emoji{ font-size:2rem; margin-bottom:.12rem; transition: transform .5s cubic-bezier(.47,1.64,.41,.8); filter: drop-shadow(0 2px 8px #ffd45288); }
 .emocion-card.selected .emoji{ animation: pulse-emoji 0.6s;}
-.emocion-card span{ font-size:1.01rem; margin-top:.05rem; font-weight:700; letter-spacing:.02em; text-align:center; }
 
-/* INPUT TAREA */
 .input-row{ width:100%; display:flex; justify-content:center; margin-bottom:1.5rem; }
 .input-group{ width:100%; max-width:340px; display:flex; align-items:center; gap:.8rem; justify-content:center; }
 .input-group input{
@@ -130,7 +123,6 @@ h1 { font-weight:900; font-size:2.4rem; letter-spacing:-1px; color:var(--text-ti
 #add-task-btn:active,#modal-add-task-btn:active{ animation:bounce .26s; }
 @keyframes bounce{0%{transform:scale(1);}35%{transform:scale(1.21);}65%{transform:scale(0.92);}100%{transform:scale(1);}}
 
-/* PILLS ESPACIOS */
 #spaces{ width:100%; max-width:340px; display:flex; gap:.8rem; margin-bottom:1.5rem; justify-content:center; align-items:center; }
 .space-btn{
   flex:1; background:var(--pill-bg); border-radius:99px; padding:.65rem 0; font-size:1.11rem; font-weight:700; color:var(--primary-light);
@@ -139,7 +131,6 @@ h1 { font-weight:900; font-size:2.4rem; letter-spacing:-1px; color:var(--text-ti
 }
 .space-btn.active,.space-btn:hover{ background:var(--primary); color:#ffe585; box-shadow:0 8px 22px rgba(60,60,60,0.18); border:2.6px solid #ffe585; transform:scale(1.03); }
 
-/* CALENDARIO */
 #calendar-section{ width:100%; margin-bottom:1.5rem; display:flex; flex-direction:column; align-items:center; }
 .calendar-container{
   width:100%; background:var(--surface-light); border-radius:var(--radius-lg); box-shadow:0 8px 32px #19193236, var(--shadow-glow);
@@ -163,6 +154,7 @@ h1 { font-weight:900; font-size:2.4rem; letter-spacing:-1px; color:var(--text-ti
 .calendar-day.selected{ background:var(--primary); border:2px solid #ffe585; color:#ffe585; box-shadow:var(--shadow-glow); }
 .calendar-day.calendar-label{ background:none; box-shadow:none; cursor:default; color:var(--primary-light); font-weight:700;}
 .calendar-day.calendar-empty{ background:none; box-shadow:none; }
+.calendar-day .emoji-small{ position:absolute; right:4px; bottom:2px; font-size:1rem; filter: drop-shadow(0 0 5px #ffe58588); }
 
 #calendar-tasks{
   width:100%; min-height:30px; margin-top:.5rem; background:var(--card-bg); border-radius:var(--radius-md); color:var(--text-main); font-size:1.07rem; padding:.5rem; backdrop-filter: blur(8px);
@@ -170,7 +162,6 @@ h1 { font-weight:900; font-size:2.4rem; letter-spacing:-1px; color:var(--text-ti
 .calendar-task{ padding:.5rem; border-radius:var(--radius-sm); margin-bottom:.5rem; background:#ffffff1a; }
 .calendar-task.complete{ opacity:.6; text-decoration:line-through; }
 
-/* MODAL GENERIC */
 .modal{ position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(25,25,50,0.8); display:flex; align-items:center; justify-content:center; z-index:1000;
   backdrop-filter:blur(4px); opacity:0; transform:scale(.8); transition:opacity .3s ease, transform .3s ease;}
 .modal:not(.hidden){ opacity:1; transform:scale(1); }
@@ -180,13 +171,11 @@ h1 { font-weight:900; font-size:2.4rem; letter-spacing:-1px; color:var(--text-ti
 .modal-close{ float:right; font-size:1.5rem; cursor:pointer; color:var(--text-main); }
 .modal-close:hover{ color:#ffe585; }
 
-/* FOCUS */
 #focus-mode .modal-content{text-align:center;}
 #pomodoro-timer{ font-size:2rem; color:var(--text-title); margin:1rem 0; }
 #pomodoro-start-btn,#pomodoro-reset-btn{ background:var(--primary); color:#ffe585; border:none; border-radius:var(--radius-md); padding:.8rem 1.5rem; margin:.5rem; cursor:pointer; }
 #pomodoro-start-btn:hover,#pomodoro-reset-btn:hover{ background:#334b96; }
 
-/* LISTA TAREAS */
 #task-list-section{ width:100%; }
 #task-list{ width:100%; display:flex; flex-direction:column; align-items:center; }
 .task-item{
@@ -200,24 +189,9 @@ h1 { font-weight:900; font-size:2.4rem; letter-spacing:-1px; color:var(--text-ti
 .task-action-btn,.focus-btn{ background:none; border:none; font-size:1.7rem; cursor:pointer; transition:opacity var(--transition), transform .18s cubic-bezier(.47,1.64,.41,.8), color var(--transition); color:var(--primary); opacity:.73; padding:0 .3rem; }
 .task-action-btn:hover,.focus-btn:hover{ opacity:1; color:#232450; transform:scale(1.19) rotate(-8deg); }
 
-/* VARIOS */
 .hidden{ display:none !important; }
 .pulse{ animation:pulse-emoji .7s; }
-#modal-date{ font-size:1.5rem; color:var(--text-title); margin-bottom:1rem; }
-#modal-emotion{ font-size:1.2rem; color:var(--text-main); margin-bottom:.5rem; }
-#modal-notification{ font-size:1rem; color:#ffe585; margin-bottom:.5rem; }
-#modal-tasks{ margin-bottom:1rem; min-height:50px; }
-.modal-input-group{ display:flex; gap:.8rem; }
-#modal-task-input,#modal-task-notes{ flex:1; padding:.8rem; border-radius:var(--radius-md); border:none; background:var(--input-bg); color:var(--text-contrast); }
-#modal-task-input:focus,#modal-task-notes:focus{ outline:none; background:var(--input-focus); color:#ffe585; }
-#modal-task-notes{ height:100px; resize:none; }
 
-.bubbles{ pointer-events:none; position:fixed; left:0; top:0; width:100vw; height:100vh; z-index:9999; }
-.bubble{ position:absolute; border-radius:50%; background:rgba(190,220,255,0.7); box-shadow:0 0 12px #fff5; transition:transform .2s cubic-bezier(.4,2,.6,1), opacity .2s; opacity:.7; animation:burbujaPop .6s cubic-bezier(.3,1.5,.8,1) forwards; }
-.bubble.explode{ transform:scale(2.3) translateY(-40px); opacity:0; }
-@keyframes burbujaPop{ 0%{transform:scale(.6); opacity:.5;} 70%{transform:scale(1.1);} 100%{} }
-
-/* Anti-stress modal */
 .antistress-bubbles{ width:100%; min-height:100px; display:flex; flex-wrap:wrap; justify-content:center; align-items:flex-end; gap:16px; margin-top:24px; margin-bottom:12px; }
 .antistress-bubble{ width:48px; height:48px; border-radius:50%; background: radial-gradient(circle at 35% 35%, #e0f7fa 60%, #90caf9 100%); box-shadow:0 2px 18px #90caf966, 0 0 8px #fff5; cursor:pointer; position:relative; transition:filter .15s, transform .13s; pointer-events:auto; border:2px solid #b3e5fc; animation: antistress-popin .6s cubic-bezier(.24,2,.4,1); }
 .antistress-bubble:active,.antistress-bubble.exploding{ filter:brightness(.92) blur(1px); transform:scale(1.12); }
@@ -228,7 +202,8 @@ h1 { font-weight:900; font-size:2.4rem; letter-spacing:-1px; color:var(--text-ti
 .antistress-modal-content{ max-width:350px; text-align:center; }
 .antistress-tip{ color:#90caf9; font-size:1rem; margin:10px 0 5px 0; }
 
-/* RESPONSIVE */
+footer{ margin-top:1rem; opacity:.8; }
+
 @media (max-width:650px){
   #app{ max-width:98vw; padding:1.1rem .2rem;}
   header{ flex-direction:column; align-items:flex-start; gap:.7rem;}
