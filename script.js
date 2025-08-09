@@ -376,3 +376,157 @@ function init(){
   document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible' && state.settings.autoTheme){ autoThemeApplyByHour(); applyDayMode(); } });
 }
 window.addEventListener('DOMContentLoaded', init);
+
+function addTask(texto, fecha = selectedDate || todayStr()){
+  const t=(texto||'').trim(); if(!t) return;
+  state.tasks.push({
+    id: uid(),
+    texto: t,
+    completada: false,
+    space: currentSpace,
+    fecha,
+    notas: '',
+    createdAt: Date.now(),
+    reminderAt: null        // ← NUEVO
+  });
+  saveState();
+  pushFrequent(t);
+  renderTaskList();
+  updateTodayCounter();
+  if(selectedDate) renderModalTasks(selectedDate);
+}
+
+// ===== Recordatorios (Notifications API) =====
+const reminderTimers = new Map(); // id -> timeoutId
+
+async function ensureNotifPermission(){
+  if (!('Notification' in window)) return false;
+  if (Notification.permission === 'granted') return true;
+  if (Notification.permission === 'denied') return false;
+  try { const res = await Notification.requestPermission(); return res === 'granted'; }
+  catch { return false; }
+}
+
+function scheduleReminderForTask(task){
+  // Limpio previo
+  if (reminderTimers.has(task.id)) {
+    clearTimeout(reminderTimers.get(task.id));
+    reminderTimers.delete(task.id);
+  }
+  if (!task.reminderAt) return;
+
+  const when = new Date(task.reminderAt).getTime();
+  const now = Date.now();
+  const delay = when - now;
+  if (delay <= 0 || task.completada) {
+    task.reminderAt = null;
+    saveState();
+    return;
+  }
+
+  const tid = setTimeout(async () => {
+    const can = await ensureNotifPermission();
+    const title = '⏰ Recordatorio';
+    const body  = task.texto;
+    if (can) {
+      // Notificación
+      new Notification(title, { body, badge: '', icon: '', vibrate: [40,20,40] });
+    } else {
+      // Fallback
+      if ('vibrate' in navigator) navigator.vibrate(120);
+      alert(`${title}\n\n${body}`);
+    }
+    playBeep();
+    task.reminderAt = null; // se consume
+    saveState();
+    renderTaskList();
+    if (selectedDate) renderModalTasks(selectedDate);
+  }, delay);
+
+  reminderTimers.set(task.id, tid);
+}
+
+function scheduleAllReminders(){
+  // Borro todos
+  reminderTimers.forEach(id => clearTimeout(id));
+  reminderTimers.clear();
+  state.tasks.forEach(t => scheduleReminderForTask(t));
+}
+
+function promptReminderForTask(task){
+  // UX simple: pedir minutos a partir de ahora
+  const raw = prompt('Recordarme en (minutos):', '30');
+  if (raw === null) return; // cancelado
+  const minutes = parseInt(raw, 10);
+  if (!Number.isFinite(minutes) || minutes <= 0) {
+    alert('Ingresa un número de minutos válido.');
+    return;
+  }
+  const at = new Date(Date.now() + minutes*60000);
+  task.reminderAt = at.toISOString();
+  saveState();
+  scheduleReminderForTask(task);
+  renderTaskList();
+  if (selectedDate) renderModalTasks(selectedDate);
+}
+
+function cancelReminderForTask(task){
+  task.reminderAt = null;
+  saveState();
+  scheduleReminderForTask(task);
+  renderTaskList();
+  if (selectedDate) renderModalTasks(selectedDate);
+}
+function renderTaskList(){
+  taskList.innerHTML='';
+  const items = state.tasks
+    .filter(t=>t.space===currentSpace)
+    .sort((a,b)=> Number(a.completada)-Number(b.completada) || a.createdAt-b.createdAt);
+
+  items.forEach(t=>{
+    const li=document.createElement('li');
+    li.className='task-item'+(t.completada?' complete':'');
+    li.dataset.id=t.id; li.draggable=true;
+    li.innerHTML = `
+      <span>${t.texto}</span>
+      <div class="task-actions">
+        <button data-action="toggle" title="Completar">${t.completada?'✔️':'⬜'}</button>
+        <button data-action="bell" class="bell ${t.reminderAt?'has-reminder':''}" title="${t.reminderAt ? 'Quitar recordatorio' : 'Agregar recordatorio'}">🔔</button>
+        <button data-action="delete" title="Borrar">🗑️</button>
+        <button data-action="focus"  title="Enfocar">🎯</button>
+      </div>
+    `;
+    li.addEventListener('dragstart', ()=> li.classList.add('dragging'));
+    li.addEventListener('dragend',   ()=> li.classList.remove('dragging'));
+    li.addEventListener('click', async (e)=>{
+      const b=e.target.closest('button'); if(!b) return;
+      const action=b.dataset.action;
+      if(action==='toggle') toggleTask(t.id, !t.completada);
+      if(action==='delete') deleteTask(t.id);
+      if(action==='focus')  startFocusMode(t.id);
+      if(action==='bell'){
+        if (t.reminderAt) {
+          if (confirm('¿Quitar recordatorio?')) cancelReminderForTask(t);
+        } else {
+          const ok = await ensureNotifPermission();
+          if (!ok) alert('No tienes permisos de notificación. Usaré un aviso en pantalla.');
+          promptReminderForTask(t);
+        }
+      }
+    });
+    taskList.appendChild(li);
+  });
+}
+if (act==='bell') {
+  const task = state.tasks.find(x=>x.id===id);
+  if (!task) return;
+  if (task.reminderAt) {
+    if (confirm('¿Quitar recordatorio?')) cancelReminderForTask(task);
+  } else {
+    ensureNotifPermission().then(()=> promptReminderForTask(task));
+  }
+}
+renderTaskList();
+updateTodayCounter();
+scheduleAllReminders();   // ← NUEVO
+maybeLock();
