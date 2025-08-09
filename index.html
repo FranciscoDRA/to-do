@@ -140,6 +140,13 @@
         <small class="hint">Un “beep” suave al marcar ✔️</small>
       </div>
 
+      <!-- NUEVO: Recordatorios -->
+      <div class="settings-row glass">
+        <label class="label-col">Recordatorios</label>
+        <button id="notif-permission-btn" class="btn">Permitir / Probar 🔔</button>
+        <small class="hint">Los recordatorios aparecen si la pestaña está abierta.</small>
+      </div>
+
       <div class="settings-row glass">
         <label class="label-col">Bolitas Anti‑Stress</label>
         <button id="open-antistress-btn" class="btn">Abrir</button>
@@ -197,5 +204,23 @@
   <button id="floating-add-btn" class="fab" aria-label="Tareas de hoy">+</button>
 
   <script src="script.js"></script>
+  <script>
+    /* Hook para el botón de permisos de notificación */
+    document.getElementById('notif-permission-btn')?.addEventListener('click', async () => {
+      if (!('Notification' in window)) {
+        alert('Este navegador no soporta notificaciones.');
+        return;
+      }
+      let result = Notification.permission;
+      if (result !== 'granted') {
+        try { result = await Notification.requestPermission(); } catch(e){}
+      }
+      if (result === 'granted') {
+        new Notification('✅ Notificaciones habilitadas', { body: 'Todo listo para tus recordatorios.' });
+      } else {
+        alert('No se otorgaron permisos de notificación. Usaré avisos en pantalla como fallback.');
+      }
+    });
+  </script>
 </body>
 </html>
