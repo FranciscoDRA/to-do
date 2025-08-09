@@ -2,116 +2,124 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>TaskGarden</title>
-  <link rel="stylesheet" href="styles.css"/>
-  <!-- Manifest/Service Worker removidos -->
-  <meta name="theme-color" content="#191932"/>
+  <meta name="theme-color" content="#0f1221" />
+  <!-- Sin manifest / sin service worker -->
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <div class="main-bg"></div>
+  <div class="bg-gradient" aria-hidden="true"></div>
 
   <!-- PIN (opcional, local) -->
-  <div id="pin-modal" class="modal hidden">
+  <div id="pin-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="pin-title">
     <div class="modal-content">
-      <span class="modal-close" data-close="pin-modal">&times;</span>
-      <h2>Desbloquear</h2>
-      <input type="password" id="pin-input" placeholder="Ingresa tu PIN (4 dígitos)"/>
-      <div style="display:flex; gap:.5rem; margin-top:.5rem;">
-        <button id="pin-submit-btn">Desbloquear</button>
-        <button id="pin-set-btn">Configurar/Actualizar PIN</button>
-        <button id="pin-disable-btn">Quitar PIN</button>
+      <button class="modal-close" data-close="pin-modal" aria-label="Cerrar">×</button>
+      <h2 id="pin-title">Desbloquear</h2>
+      <input type="password" id="pin-input" inputmode="numeric" pattern="[0-9]*" placeholder="PIN (4 dígitos)" />
+      <div class="row gap-sm">
+        <button id="pin-submit-btn" class="btn btn-primary">Desbloquear</button>
+        <button id="pin-set-btn" class="btn">Configurar/Actualizar</button>
+        <button id="pin-disable-btn" class="btn btn-ghost">Quitar PIN</button>
       </div>
-      <small style="opacity:.8;display:block;margin-top:.6rem;">El PIN se guarda localmente en este dispositivo.</small>
+      <small class="subtle">El PIN se guarda localmente en este dispositivo.</small>
     </div>
   </div>
 
-  <div id="app">
-    <header>
-      <div>
-        <h1>TaskGarden</h1>
-        <span class="subtitle">Tu espacio mental. Organiza, respira, evoluciona.</span>
+  <div id="app" class="shell">
+    <header class="app-header">
+      <div class="title-wrap">
+        <h1 class="brand">TaskGarden</h1>
+        <p class="subtitle">Tu espacio mental. Organiza, respira, evoluciona.</p>
       </div>
-      <div id="avatar-emocional">😊</div>
-      <div class="header-actions">
-        <div id="today-counter" class="today-chip" title="Tareas completadas hoy">Hoy: 0 ✔️</div>
-        <button id="modo-calma-btn" title="Modo calma">🧘</button>
-        <button id="day-night-toggle" title="Modo día/noche">🌙</button>
-        <button id="settings-btn" title="Configuraciones">⚙️</button>
+      <div class="status-wrap">
+        <div id="avatar-emocional" class="avatar" aria-live="polite">😊</div>
+        <div id="today-counter" class="chip" title="Tareas completadas hoy">Hoy: 0 ✔️</div>
+        <button id="modo-calma-btn" class="icon-btn" title="Modo calma">🧘</button>
+        <button id="day-night-toggle" class="icon-btn" title="Modo día/noche">🌙</button>
+        <button id="settings-btn" class="icon-btn" title="Configuraciones">⚙️</button>
       </div>
     </header>
 
-    <section id="emocional-cards">
-      <div class="emocion-card selected" data-emocion="feliz"><span class="emoji">😊</span>Feliz</div>
-      <div class="emocion-card" data-emocion="triste"><span class="emoji">😢</span>Triste</div>
-      <div class="emocion-card" data-emocion="estresado"><span class="emoji">😣</span>Estresado</div>
-      <div class="emocion-card" data-emocion="calmo"><span class="emoji">😌</span>Calmo</div>
+    <!-- Estado emocional -->
+    <section id="emocional-cards" class="grid-emotions">
+      <button class="emocion-card selected" data-emocion="feliz"><span class="emoji">😊</span><span>Feliz</span></button>
+      <button class="emocion-card" data-emocion="triste"><span class="emoji">😢</span><span>Triste</span></button>
+      <button class="emocion-card" data-emocion="estresado"><span class="emoji">😣</span><span>Estresado</span></button>
+      <button class="emocion-card" data-emocion="calmo"><span class="emoji">😌</span><span>Calmo</span></button>
     </section>
 
-    <section id="add-task" class="input-row">
+    <!-- Nueva tarea -->
+    <section id="add-task" class="add-task">
       <div class="input-group">
-        <input type="text" id="task-input" placeholder="Nueva tarea..." list="task-suggestions" autocomplete="off"/>
+        <input type="text" id="task-input" placeholder="Nueva tarea…" list="task-suggestions" autocomplete="off" />
         <datalist id="task-suggestions"></datalist>
-        <button id="add-task-btn" aria-label="Agregar tarea">+</button>
+        <button id="add-task-btn" class="btn-circle" aria-label="Agregar tarea">+</button>
       </div>
     </section>
 
-    <section id="spaces">
+    <!-- Espacios -->
+    <nav id="spaces" class="spaces">
       <button class="space-btn active" data-space="personal">Personal</button>
       <button class="space-btn" data-space="trabajo">Trabajo</button>
       <button class="space-btn" data-space="creatividad">Creatividad</button>
-    </section>
+    </nav>
 
-    <section id="calendar-section">
-      <div class="calendar-container">
+    <!-- Calendario -->
+    <section id="calendar-section" class="calendar-section">
+      <div class="calendar-root glass">
         <div class="calendar-header">
-          <button class="calendar-nav" id="prev-month" aria-label="Mes anterior">&lt;</button>
-          <span id="calendar-month">Agosto 2025</span>
-          <button class="calendar-nav" id="next-month" aria-label="Mes siguiente">&gt;</button>
+          <button class="nav-pill" id="prev-month" aria-label="Mes anterior">‹</button>
+          <span id="calendar-month" class="month-label">Agosto 2025</span>
+          <button class="nav-pill" id="next-month" aria-label="Mes siguiente">›</button>
         </div>
-        <div id="calendar-grid" class="calendar-grid"></div>
+        <div id="calendar-grid" class="calendar-grid" aria-label="Calendario"></div>
       </div>
-      <div id="calendar-tasks"></div>
+      <div id="calendar-tasks" class="calendar-tasks glass"></div>
     </section>
 
-    <section id="task-list-section">
-      <ul id="task-list"></ul>
+    <!-- Lista -->
+    <section id="task-list-section" class="list-section">
+      <ul id="task-list" class="task-list" aria-live="polite"></ul>
     </section>
 
-    <section id="weekly-emotion-report">
-      <span class="report-title">Tu semana emocional</span>
-      <div class="emotion-bar">
+    <!-- Semana emocional -->
+    <section id="weekly-emotion-report" class="weekly">
+      <h3 class="kicker">Tu semana emocional</h3>
+      <div class="emotion-bar glass">
         <span class="emotion-day">L 😊</span>
         <span class="emotion-day">M 😊</span>
         <span class="emotion-day">X 😣</span>
         <span class="emotion-day">J 😌</span>
         <span class="emotion-day">V 😢</span>
-        <span class="emotion-day">S -</span>
-        <span class="emotion-day">D -</span>
+        <span class="emotion-day">S –</span>
+        <span class="emotion-day">D –</span>
       </div>
     </section>
 
+    <!-- Stats (placeholder) -->
     <section id="stats-section" class="hidden">
       <h2>Estadísticas</h2>
-      <div id="stats-emotions"></div>
-      <div id="stats-productivity"></div>
+      <div id="stats-emotions" class="glass" style="height:180px"></div>
+      <div id="stats-productivity" class="glass" style="height:180px"></div>
     </section>
 
-    <section id="settings-section" class="hidden">
+    <!-- Settings -->
+    <section id="settings-section" class="settings hidden">
       <h2>Configuraciones</h2>
 
-      <div class="settings-group">
-        <label>Fondo:</label>
+      <div class="settings-row glass">
+        <label for="background-selector">Fondo</label>
         <select id="background-selector">
-          <option value="default">Gradiente Predeterminado</option>
+          <option value="default">Predeterminado</option>
           <option value="ocean">Océano</option>
           <option value="forest">Bosque</option>
           <option value="sunset">Atardecer</option>
         </select>
       </div>
 
-      <div class="settings-group">
-        <label>Avatar:</label>
+      <div class="settings-row glass">
+        <label for="avatar-selector">Avatar</label>
         <select id="avatar-selector">
           <option value="default">Predeterminado</option>
           <option value="cat">Gato</option>
@@ -120,71 +128,73 @@
         </select>
       </div>
 
-      <div class="settings-group">
-        <label>Auto Día/Noche:</label>
-        <input type="checkbox" id="auto-theme-toggle"/>
-        <small>Se adapta a la hora local (7–19h día)</small>
+      <div class="settings-row glass">
+        <label class="label-col">Auto Día/Noche</label>
+        <input type="checkbox" id="auto-theme-toggle" />
+        <small class="hint">Se adapta a la hora local (7–19h día)</small>
       </div>
 
-      <div class="settings-group">
-        <label>Sonido al completar:</label>
-        <input type="checkbox" id="sound-toggle"/>
-        <small>Un “beep” suave al marcar ✔️</small>
+      <div class="settings-row glass">
+        <label class="label-col">Sonido al completar</label>
+        <input type="checkbox" id="sound-toggle" />
+        <small class="hint">Un “beep” suave al marcar ✔️</small>
       </div>
 
-      <div class="settings-group">
-        <label>Bolitas Anti-Stress:</label>
-        <button id="open-antistress-btn">Abrir</button>
+      <div class="settings-row glass">
+        <label class="label-col">Bolitas Anti‑Stress</label>
+        <button id="open-antistress-btn" class="btn">Abrir</button>
       </div>
 
-      <div class="settings-group">
-        <label>Bloqueo con PIN:</label>
-        <button id="open-pin-btn">Abrir</button>
+      <div class="settings-row glass">
+        <label class="label-col">Bloqueo con PIN</label>
+        <button id="open-pin-btn" class="btn">Abrir</button>
       </div>
     </section>
 
-    <button id="floating-add-btn" class="floating-btn" aria-label="Abrir tareas de hoy">+</button>
-    <footer id="semana-resumen">Tu semana: 😊😊😣😌😢</footer>
+    <footer id="semana-resumen" class="footer">Tu semana: 😊😊😣😌😢</footer>
   </div>
 
-  <!-- Modal Enfoque -->
-  <div id="focus-mode" class="modal hidden">
+  <!-- Focus -->
+  <div id="focus-mode" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="focus-title">
     <div class="modal-content">
-      <span class="modal-close" data-close="focus-mode">&times;</span>
-      <h2>Modo Enfoque</h2>
-      <div id="focus-task"></div>
-      <div id="pomodoro-timer">25:00</div>
-      <button id="pomodoro-start-btn">Iniciar</button>
-      <button id="pomodoro-reset-btn">Reiniciar</button>
+      <button class="modal-close" data-close="focus-mode" aria-label="Cerrar">×</button>
+      <h2 id="focus-title">Modo Enfoque</h2>
+      <div id="focus-task" class="focus-task"></div>
+      <div id="pomodoro-timer" class="pomodoro">25:00</div>
+      <div class="row gap-sm">
+        <button id="pomodoro-start-btn" class="btn btn-primary">Iniciar</button>
+        <button id="pomodoro-reset-btn" class="btn btn-ghost">Reiniciar</button>
+      </div>
     </div>
   </div>
 
   <!-- Modal Día -->
-  <div id="day-modal" class="modal hidden">
+  <div id="day-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="day-title">
     <div class="modal-content">
-      <span class="modal-close" data-close="day-modal">&times;</span>
-      <h2 id="modal-date">Día seleccionado</h2>
-      <p id="modal-emotion">Emoción: 😊</p>
-      <p id="modal-notification" class="hidden">Hoy no registraste cómo te sentís 🧠</p>
-      <div class="modal-input-group">
-        <input type="text" id="modal-task-input" placeholder="Nueva tarea..."/>
-        <button id="modal-add-task-btn">+</button>
+      <button class="modal-close" data-close="day-modal" aria-label="Cerrar">×</button>
+      <h2 id="day-title" class="modal-title">Día seleccionado</h2>
+      <p id="modal-emotion" class="muted">Emoción: 😊</p>
+      <p id="modal-notification" class="notice hidden">Hoy no registraste cómo te sentís 🧠</p>
+      <div class="input-group">
+        <input type="text" id="modal-task-input" placeholder="Nueva tarea…" />
+        <button id="modal-add-task-btn" class="btn">+</button>
       </div>
-      <div id="modal-subtasks"></div>
-      <textarea id="modal-task-notes" placeholder="Notas de la tarea..."></textarea>
-      <div id="modal-tasks">Tareas del día</div>
+      <textarea id="modal-task-notes" placeholder="Notas de la tarea…" class="notes"></textarea>
+      <div id="modal-tasks" class="modal-tasks">Tareas del día</div>
     </div>
   </div>
 
-  <!-- Modal Anti-Stress -->
-  <div id="antistress-modal" class="modal hidden">
-    <div class="modal-content antistress-modal-content">
-      <span class="modal-close" id="close-antistress-modal">&times;</span>
-      <h2>Burbujas Anti-Stress</h2>
-      <div id="antistress-bubbles-container" class="antistress-bubbles"></div>
-      <p class="antistress-tip">¡Haz click en las burbujas para explotarlas!</p>
+  <!-- Anti-stress -->
+  <div id="antistress-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="as-title">
+    <div class="modal-content as-content">
+      <button class="modal-close" id="close-antistress-modal" aria-label="Cerrar">×</button>
+      <h2 id="as-title">Burbujas Anti‑Stress</h2>
+      <div id="antistress-bubbles-container" class="as-bubbles"></div>
+      <p class="hint">¡Toca las burbujas para explotarlas!</p>
     </div>
   </div>
+
+  <button id="floating-add-btn" class="fab" aria-label="Tareas de hoy">+</button>
 
   <script src="script.js"></script>
 </body>
