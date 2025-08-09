@@ -634,12 +634,56 @@ floatingAddBtn?.addEventListener('click', () => {
   renderModalTasks(selectedDate);
 });
 
+// --- PRODUCT GALLERY FROM GOOGLE SHEETS ---
+function loadProductGallery() {
+  const gallery = document.getElementById('product-gallery');
+  if (!gallery || typeof Papa === 'undefined') return;
+  const csvUrl = 'https://docs.google.com/spreadsheets/d/YOUR_SHEET_ID/export?format=csv';
+  Papa.parse(csvUrl, {
+    download: true,
+    header: true,
+    skipEmptyLines: true,
+    complete: (results) => {
+      const items = results.data;
+      if (!Array.isArray(items) || items.length === 0) {
+        gallery.innerHTML = '<p>No hay productos disponibles.</p>';
+        return;
+      }
+      items.forEach(item => {
+        const { nombre, precio, descripcion, imagen } = item;
+        if (!nombre && !precio && !descripcion && !imagen) return;
+        const card = document.createElement('div');
+        card.className = 'product-item';
+        const img = document.createElement('img');
+        img.src = imagen || '';
+        img.alt = nombre || 'Producto';
+        img.onerror = () => {
+          img.src = 'https://via.placeholder.com/150?text=Sin+Imagen';
+        };
+        const title = document.createElement('h3');
+        title.textContent = nombre || 'Sin nombre';
+        const desc = document.createElement('p');
+        desc.textContent = descripcion || 'Sin descripción';
+        const price = document.createElement('span');
+        price.textContent = precio ? `$${precio}` : 'Precio no disponible';
+        card.append(img, title, desc, price);
+        gallery.appendChild(card);
+      });
+    },
+    error: (err) => {
+      console.error('Error al cargar productos', err);
+      gallery.innerHTML = '<p>Error al cargar productos.</p>';
+    }
+  });
+}
+
 // --- INICIALIZAR ---
 window.addEventListener('DOMContentLoaded', () => {
   renderCalendar(currentMonth, currentYear);
   cargarEmocion();
+  loadProductGallery();
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/service-worker.js');
+    navigator.serviceWorker.register('./service-worker.js');
   }
 });
 
