@@ -335,3 +335,7 @@ body.day-mode .brand{ color:#6d7cf4; }
   .brand{ font-size:2rem; }
   .grid-emotions{ grid-template-columns: repeat(2,1fr); }
 }
+/* Recordatorios */
+.task-actions .bell { font-size:1.3rem; }
+.task-actions .has-reminder { color:#ffda6b; filter: drop-shadow(0 0 6px #ffda6b66); }
+
