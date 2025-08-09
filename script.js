@@ -1,27 +1,39 @@
-/*******************************
- * TaskGarden – Lógica simple
- * - Sin Firebase
- * - Sin Manifest / SW
+/*************************************************
+ * TaskGarden – Versión simple (sin módulos)
+ * - Sin Manifest / Service Worker
  * - 100% localStorage
- *******************************/
+ * - Mejoras: confirmación borrar, sonido opcional, auto tema, atajos, contador diario
+ **************************************************/
 
-// ====== Helpers de estado ======
-const LS_KEY = 'tg_state_v1';
+// ====== Helpers/Estado ======
+const LS_KEY = 'tg_state_v2';
 
 function defaultState() {
   return {
-    tasks: [], // {id, texto, completada, space, fecha, notas}
-    emotions: {}, // { 'YYYY-MM-DD': 'feliz' | 'triste' | 'estresado' | 'calmo' }
+    tasks: [],               // {id, texto, completada, space, fecha, notas}
+    emotions: {},            // {'YYYY-MM-DD': 'feliz'|'triste'|'estresado'|'calmo'}
     settings: {
-      dayMode: false,
+      dayMode: false,        // si autoTheme = false, este controla el tema
+      autoTheme: true,       // auto día/noche por hora
       background: 'default',
       avatar: 'default',
+      soundOn: true,
       pinEnabled: false,
-      pin: '' // hash simple en memoria local (no seguro fuerte, pero práctico)
+      pin: ''
     },
-    frequentTasks: [] // últimas 10 agregadas
+    frequentTasks: []        // últimas 10 agregadas
   };
 }
+
+let state = loadState();
+let currentSpace = 'personal';
+let emocionActual = 'feliz';
+let selectedDate = null;
+let currentMonth = new Date().getMonth();
+let currentYear = new Date().getFullYear();
+let pomodoroInterval = null;
+let pomodoroTime = 25 * 60; // seg
+let completionOsc = null;    // WebAudio “beep”
 
 function loadState() {
   try {
@@ -31,24 +43,16 @@ function loadState() {
     return defaultState();
   }
 }
-
 function saveState() {
   localStorage.setItem(LS_KEY, JSON.stringify(state));
 }
-
 function uid() {
   return Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 }
-
-// ====== Estado runtime ======
-let state = loadState();
-let currentSpace = 'personal';
-let emocionActual = 'feliz';
-let selectedDate = null;
-let currentMonth = new Date().getMonth();
-let currentYear = new Date().getFullYear();
-let pomodoroInterval = null;
-let pomodoroTime = 25 * 60; // en segundos
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
 
 // ====== DOM ======
 const avatarEmocional = document.getElementById('avatar-emocional');
@@ -58,6 +62,9 @@ const settingsBtn = document.getElementById('settings-btn');
 const settingsSection = document.getElementById('settings-section');
 const backgroundSelector = document.getElementById('background-selector');
 const avatarSelector = document.getElementById('avatar-selector');
+const autoThemeToggle = document.getElementById('auto-theme-toggle');
+const soundToggle = document.getElementById('sound-toggle');
+
 const floatingAddBtn = document.getElementById('floating-add-btn');
 const focusModeModal = document.getElementById('focus-mode');
 const focusTask = document.getElementById('focus-task');
@@ -66,6 +73,7 @@ const pomodoroStartBtn = document.getElementById('pomodoro-start-btn');
 const pomodoroResetBtn = document.getElementById('pomodoro-reset-btn');
 const statsSection = document.getElementById('stats-section');
 const semanaResumen = document.getElementById('semana-resumen');
+const todayCounter = document.getElementById('today-counter');
 
 const taskInput = document.getElementById('task-input');
 const addTaskBtn = document.getElementById('add-task-btn');
@@ -108,13 +116,24 @@ function animarElemento(el, clase) {
   el.classList.add(clase);
   el.addEventListener('animationend', () => el.classList.remove(clase), { once: true });
 }
+function setHidden(el, hidden) { if (!el) return; el.classList.toggle('hidden', !!hidden); }
 
-// ====== Day/Night ======
+// ====== Tema día/noche ======
+function autoThemeApplyByHour() {
+  const hr = new Date().getHours();
+  const isDay = hr >= 7 && hr < 19;
+  state.settings.dayMode = isDay;
+}
 function applyDayMode() {
   document.body.classList.toggle('day-mode', !!state.settings.dayMode);
   darkToggleBtn.textContent = state.settings.dayMode ? '🌙' : '☀️';
 }
 darkToggleBtn?.addEventListener('click', () => {
+  if (state.settings.autoTheme) {
+    // Si estaba en auto, al tocar se desactiva auto y se hace manual
+    state.settings.autoTheme = false;
+    autoThemeToggle.checked = false;
+  }
   state.settings.dayMode = !state.settings.dayMode;
   saveState();
   applyDayMode();
@@ -146,13 +165,13 @@ avatarSelector?.addEventListener('change', () => {
 // ====== PIN (local) ======
 function maybeLock() {
   if (state.settings.pinEnabled) {
-    pinModal.classList.remove('hidden');
+    setHidden(pinModal, false);
   }
 }
 pinSubmitBtn?.addEventListener('click', () => {
   const pin = (pinInput.value || '').trim();
   if (pin && pin === state.settings.pin) {
-    pinModal.classList.add('hidden');
+    setHidden(pinModal, true);
     pinInput.value = '';
   } else {
     alert('PIN incorrecto.');
@@ -165,7 +184,7 @@ pinSetBtn?.addEventListener('click', () => {
     state.settings.pinEnabled = true;
     saveState();
     alert('PIN configurado.');
-    pinModal.classList.add('hidden');
+    setHidden(pinModal, true);
     pinInput.value = '';
   } else {
     alert('El PIN debe ser 4 dígitos numéricos.');
@@ -176,18 +195,15 @@ pinDisableBtn?.addEventListener('click', () => {
   state.settings.pin = '';
   saveState();
   alert('PIN desactivado.');
-  pinModal.classList.add('hidden');
+  setHidden(pinModal, true);
   pinInput.value = '';
 });
-openPinBtn?.addEventListener('click', () => {
-  pinModal.classList.remove('hidden');
-});
+openPinBtn?.addEventListener('click', () => setHidden(pinModal, false));
 
 // ====== Emociones & Avatar ======
 function setEmocion(emocion) {
   emocionActual = emocion;
-  // Si hay fecha seleccionada, la emoción se guarda para ese día
-  const key = selectedDate || new Date().toISOString().slice(0,10);
+  const key = selectedDate || todayStr();
   state.emotions[key] = emocionActual;
   saveState();
 
@@ -196,17 +212,15 @@ function setEmocion(emocion) {
   loadSuggestedTasks();
   renderCalendar(currentMonth, currentYear);
 }
-emocionCards.forEach(card => {
-  card.addEventListener('click', () => setEmocion(card.dataset.emocion));
-});
+emocionCards.forEach(card => card.addEventListener('click', () => setEmocion(card.dataset.emocion)));
 
 function actualizarAvatarEmocional(emocion) {
   const avatarType = state.settings.avatar || 'default';
   const avatars = {
     default: { feliz: '😊', triste: '😢', estresado: '😣', calmo: '😌' },
-    cat: { feliz: '😺', triste: '😿', estresado: '🙀', calmo: '😸' },
-    dog: { feliz: '🐶', triste: '🐶😓', estresado: '🐶😓', calmo: '🐶😊' },
-    bird: { feliz: '🐦', triste: '🐥', estresado: '🐦😣', calmo: '🐦😌' }
+    cat:     { feliz: '😺', triste: '😿', estresado: '🙀', calmo: '😸' },
+    dog:     { feliz: '🐶', triste: '🐶😓', estresado: '🐶😓', calmo: '🐶😊' },
+    bird:    { feliz: '🐦', triste: '🐥', estresado: '🐦😣', calmo: '🐦😌' }
   };
   avatarEmocional.textContent = (avatars[avatarType] && avatars[avatarType][emocion]) || '😊';
   avatarEmocional.classList.remove('anim');
@@ -232,7 +246,6 @@ function loadSuggestedTasks() {
     datalist.appendChild(option);
   });
 }
-
 function updateFrequentTasks(texto) {
   if (!texto) return;
   const arr = [texto, ...(state.frequentTasks || [])];
@@ -240,9 +253,26 @@ function updateFrequentTasks(texto) {
   saveState();
 }
 
+// ====== Sonido (WebAudio) ======
+let audioCtx = null;
+function playBeep() {
+  if (!state.settings.soundOn) return;
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  o.type = 'sine';
+  o.frequency.setValueAtTime(880, audioCtx.currentTime);
+  g.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.08, audioCtx.currentTime + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.18);
+  o.connect(g).connect(audioCtx.destination);
+  o.start();
+  o.stop(audioCtx.currentTime + 0.2);
+}
+
 // ====== Tareas (localStorage) ======
-function addTask(texto, fecha = selectedDate || new Date().toISOString().slice(0,10)) {
-  const t = texto.trim();
+function addTask(texto, fecha = selectedDate || todayStr()) {
+  const t = (texto || '').trim();
   if (!t) return;
   state.tasks.push({
     id: uid(),
@@ -250,11 +280,13 @@ function addTask(texto, fecha = selectedDate || new Date().toISOString().slice(0
     completada: false,
     space: currentSpace,
     fecha,
-    notas: ''
+    notas: '',
+    createdAt: Date.now()
   });
   saveState();
   updateFrequentTasks(t);
   renderTaskList();
+  updateTodayCounter();
   if (selectedDate) renderModalTasks(selectedDate);
 }
 function toggleTask(id, complete) {
@@ -264,18 +296,25 @@ function toggleTask(id, complete) {
   saveState();
   if (complete) {
     lanzarBurbujas();
+    playBeep();
     avatarEmocional.classList.add('bounce');
     setTimeout(() => avatarEmocional.classList.remove('bounce'), 500);
     if ('vibrate' in navigator) navigator.vibrate(50);
     updateAvatarBasedOnProgress();
   }
   renderTaskList();
+  updateTodayCounter();
   if (selectedDate) renderModalTasks(selectedDate);
 }
 function deleteTask(id) {
+  const task = state.tasks.find(t => t.id === id);
+  if (!task) return;
+  const ok = confirm(`¿Eliminar la tarea?\n\n• ${task.texto}`);
+  if (!ok) return;
   state.tasks = state.tasks.filter(t => t.id !== id);
   saveState();
   renderTaskList();
+  updateTodayCounter();
   if (selectedDate) renderModalTasks(selectedDate);
 }
 
@@ -293,8 +332,10 @@ taskInput?.addEventListener('keydown', (e) => {
 function renderTaskList() {
   if (!taskList) return;
   taskList.innerHTML = '';
-  const items = state.tasks.filter(t => t.space === currentSpace);
-  items.sort((a,b) => Number(a.completada) - Number(b.completada) || a.createdAt - b.createdAt);
+  const items = state.tasks
+    .filter(t => t.space === currentSpace)
+    .sort((a,b) => Number(a.completada) - Number(b.completada) || a.createdAt - b.createdAt);
+
   items.forEach(t => {
     const li = document.createElement('li');
     li.className = 'task-item' + (t.completada ? ' complete' : '');
@@ -332,6 +373,7 @@ spaceBtns.forEach(btn => {
     currentSpace = btn.dataset.space;
     renderTaskList();
     if (selectedDate) renderModalTasks(selectedDate);
+    updateTodayCounter();
   });
 });
 
@@ -359,7 +401,7 @@ function startFocusMode(taskId) {
   const t = state.tasks.find(x => x.id === taskId);
   if (!t) return;
   focusTask.innerHTML = `<span>${t.texto}</span>`;
-  focusModeModal.classList.remove('hidden');
+  setHidden(focusModeModal, false);
   pomodoroTime = 25 * 60;
   updatePomodoroTimer();
 }
@@ -468,7 +510,7 @@ function renderCalendar(month, year) {
       animarElemento(el, 'pulse');
     }
 
-    // mini indicador de emoción (si existe)
+    // Emoji de emoción del día (si existe)
     const emo = state.emotions[dateStr];
     if (emo) {
       const map = { feliz:'😊', triste:'😢', estresado:'😣', calmo:'😌' };
@@ -482,7 +524,7 @@ function renderCalendar(month, year) {
       selectedDate = dateStr;
       renderCalendar(currentMonth, currentYear);
       renderModalTasks(dateStr);
-      dayModal.classList.remove('hidden');
+      setHidden(dayModal, false);
     });
 
     // Drag&Drop desde lista
@@ -508,14 +550,14 @@ prevMonthBtn.onclick = () => {
   if (currentMonth < 0) { currentMonth = 11; currentYear--; }
   selectedDate = null;
   renderCalendar(currentMonth, currentYear);
-  dayModal.classList.add('hidden');
+  setHidden(dayModal, true);
 };
 nextMonthBtn.onclick = () => {
   currentMonth++;
   if (currentMonth > 11) { currentMonth = 0; currentYear++; }
   selectedDate = null;
   renderCalendar(currentMonth, currentYear);
-  dayModal.classList.add('hidden');
+  setHidden(dayModal, true);
 };
 
 // Modal día -> render tareas del día
@@ -561,22 +603,19 @@ modalAddTaskBtn?.addEventListener('click', () => {
   renderModalTasks(selectedDate);
 });
 modalTaskInput?.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') {
-    modalAddTaskBtn.click();
-  }
+  if (e.key === 'Enter') modalAddTaskBtn.click();
 });
-
 document.querySelector('#day-modal .modal-close')?.addEventListener('click', () => {
-  dayModal.classList.add('hidden');
+  setHidden(dayModal, true);
   selectedDate = null;
   renderCalendar(currentMonth, currentYear);
 });
 
-// Botón flotante abre el modal del día hoy
+// Botón flotante abre el modal del día de hoy
 floatingAddBtn?.addEventListener('click', () => {
-  selectedDate = new Date().toISOString().slice(0,10);
+  selectedDate = todayStr();
   renderModalTasks(selectedDate);
-  dayModal.classList.remove('hidden');
+  setHidden(dayModal, false);
 });
 
 // ====== Anti-stress ======
@@ -598,12 +637,48 @@ function crearBurbujasAntiEstres() {
   }
 }
 openAntistressBtn?.addEventListener('click', () => {
-  antistressModal.classList.remove('hidden');
+  setHidden(antistressModal, false);
   crearBurbujasAntiEstres();
 });
-closeAntistressModal?.addEventListener('click', () => antistressModal.classList.add('hidden'));
+closeAntistressModal?.addEventListener('click', () => setHidden(antistressModal, true));
 antistressModal?.addEventListener('click', (e) => {
-  if (e.target === antistressModal) antistressModal.classList.add('hidden');
+  if (e.target === antistressModal) setHidden(antistressModal, true);
+});
+
+// ====== Atajos de teclado ======
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    // Cierra el primer modal visible
+    [focusModeModal, dayModal, antistressModal, pinModal].some(m => {
+      if (!m.classList.contains('hidden')) { setHidden(m, true); return true; }
+      return false;
+    });
+  }
+});
+
+// ====== Contador de hoy ======
+function updateTodayCounter() {
+  const ts = state.tasks.filter(t => t.fecha === todayStr() && t.completada);
+  todayCounter.textContent = `Hoy: ${ts.length} ✔️`;
+}
+
+// ====== Settings toggles ======
+autoThemeToggle?.addEventListener('change', () => {
+  state.settings.autoTheme = autoThemeToggle.checked;
+  if (state.settings.autoTheme) {
+    autoThemeApplyByHour();
+  }
+  saveState();
+  applyDayMode();
+});
+soundToggle?.addEventListener('change', () => {
+  state.settings.soundOn = soundToggle.checked;
+  saveState();
+});
+
+settingsBtn?.addEventListener('click', () => {
+  settingsSection.classList.toggle('hidden');
+  statsSection?.classList.add('hidden');
 });
 
 // ====== Init ======
@@ -611,8 +686,13 @@ function init() {
   // Settings -> UI
   backgroundSelector.value = state.settings.background || 'default';
   avatarSelector.value = state.settings.avatar || 'default';
-  applyBackground();
+  autoThemeToggle.checked = !!state.settings.autoTheme;
+  soundToggle.checked = !!state.settings.soundOn;
+
+  // Tema
+  if (state.settings.autoTheme) autoThemeApplyByHour();
   applyDayMode();
+  applyBackground();
 
   // Emoción actual (por defecto feliz)
   setEmocion(emocionActual);
@@ -621,8 +701,18 @@ function init() {
   renderCalendar(currentMonth, currentYear);
   renderTaskList();
   loadSuggestedTasks();
+  updateTodayCounter();
 
   // PIN si está activo
   maybeLock();
+
+  // Recalcular tema cuando vuelve la pestaña (por si cambia la hora)
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && state.settings.autoTheme) {
+      autoThemeApplyByHour();
+      applyDayMode();
+    }
+  });
 }
+
 window.addEventListener('DOMContentLoaded', init);
