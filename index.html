@@ -5,13 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>TaskGarden</title>
   <meta name="theme-color" content="#0f1221" />
-  <!-- Sin manifest / sin service worker -->
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <div class="bg-gradient" aria-hidden="true"></div>
 
-  <!-- PIN (opcional, local) -->
+  <!-- PIN (local) -->
   <div id="pin-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="pin-title">
     <div class="modal-content">
       <button class="modal-close" data-close="pin-modal" aria-label="Cerrar">×</button>
@@ -55,6 +54,11 @@
         <input type="text" id="task-input" placeholder="Nueva tarea…" list="task-suggestions" autocomplete="off" />
         <datalist id="task-suggestions"></datalist>
         <button id="add-task-btn" class="btn-circle" aria-label="Agregar tarea">+</button>
+      </div>
+      <div class="input-group search-wrap">
+        <span class="search-icon">🔎</span>
+        <input type="text" id="search-input" placeholder="Buscar / filtrar (atajo: / )" autocomplete="off" />
+        <button id="clear-search-btn" class="btn" aria-label="Limpiar búsqueda">×</button>
       </div>
     </section>
 
@@ -140,11 +144,10 @@
         <small class="hint">Un “beep” suave al marcar ✔️</small>
       </div>
 
-      <!-- NUEVO: Recordatorios -->
       <div class="settings-row glass">
         <label class="label-col">Recordatorios</label>
         <button id="notif-permission-btn" class="btn">Permitir / Probar 🔔</button>
-        <small class="hint">Los recordatorios aparecen si la pestaña está abierta.</small>
+        <small class="hint">Los recordatorios funcionan con la pestaña abierta.</small>
       </div>
 
       <div class="settings-row glass">
@@ -191,6 +194,21 @@
     </div>
   </div>
 
+  <!-- Modal Recordatorio (selector fecha/hora premium) -->
+  <div id="reminder-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="rem-title">
+    <div class="modal-content">
+      <button class="modal-close" data-close="reminder-modal" aria-label="Cerrar">×</button>
+      <h2 id="rem-title">Programar recordatorio</h2>
+      <p class="muted" id="reminder-for">Para: —</p>
+      <div class="input-group">
+        <input type="datetime-local" id="reminder-dt" />
+        <button id="reminder-clear-btn" class="btn">Quitar</button>
+        <button id="reminder-save-btn" class="btn btn-primary">Guardar</button>
+      </div>
+      <small class="hint">Sugerencia: ⌘/Ctrl+N para nueva tarea • / para buscar</small>
+    </div>
+  </div>
+
   <!-- Anti-stress -->
   <div id="antistress-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="as-title">
     <div class="modal-content as-content">
@@ -201,26 +219,11 @@
     </div>
   </div>
 
+  <!-- Snackbar / Toast -->
+  <div id="snackbar" class="snackbar" aria-live="polite"></div>
+
   <button id="floating-add-btn" class="fab" aria-label="Tareas de hoy">+</button>
 
   <script src="script.js"></script>
-  <script>
-    /* Hook para el botón de permisos de notificación */
-    document.getElementById('notif-permission-btn')?.addEventListener('click', async () => {
-      if (!('Notification' in window)) {
-        alert('Este navegador no soporta notificaciones.');
-        return;
-      }
-      let result = Notification.permission;
-      if (result !== 'granted') {
-        try { result = await Notification.requestPermission(); } catch(e){}
-      }
-      if (result === 'granted') {
-        new Notification('✅ Notificaciones habilitadas', { body: 'Todo listo para tus recordatorios.' });
-      } else {
-        alert('No se otorgaron permisos de notificación. Usaré avisos en pantalla como fallback.');
-      }
-    });
-  </script>
 </body>
 </html>
