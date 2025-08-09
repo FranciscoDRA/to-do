@@ -1,8 +1,8 @@
 /*************************************************
- * TaskGarden – Lógica simple (sin módulos)
- * - Sin manifest / sin service worker
- * - 100% localStorage
- * - UI premium + mejoras
+ * TaskGarden – UX Award Pack v1 (sin módulos)
+ * - localStorage 100%
+ * - recordatorios con datetime picker
+ * - snackbar deshacer, edición inline, búsqueda, atajos
  **************************************************/
 const LS_KEY = 'tg_state_ui_premium_v1';
 
@@ -10,82 +10,85 @@ function defaultState(){
   return {
     tasks: [], // {id, texto, completada, space, fecha, notas, createdAt, reminderAt}
     emotions: {}, // {'YYYY-MM-DD': 'feliz'|'triste'|'estresado'|'calmo'}
-    settings: {
-      dayMode: false,
-      autoTheme: true,
-      background: 'default',
-      avatar: 'default',
-      soundOn: true,
-      pinEnabled: false,
-      pin: ''
-    },
+    settings: { dayMode:false, autoTheme:true, background:'default', avatar:'default', soundOn:true, pinEnabled:false, pin:'' },
     frequentTasks: []
   };
 }
-function loadState(){ try{ const raw=localStorage.getItem(LS_KEY); return raw?JSON.parse(raw):defaultState(); }catch{ return defaultState(); } }
-function saveState(){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
-function uid(){ return Math.random().toString(36).slice(2,9)+Date.now().toString(36); }
-function todayStr(){ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
-
+const uid = ()=> Math.random().toString(36).slice(2,9)+Date.now().toString(36);
+const todayStr = ()=>{ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
+const loadState = ()=> { try{const r=localStorage.getItem(LS_KEY); return r?JSON.parse(r):defaultState();}catch{ return defaultState(); } };
 let state = loadState();
+const saveState = ()=> localStorage.setItem(LS_KEY, JSON.stringify(state));
+
+/* ===== Global UI refs ===== */
 let currentSpace='personal', emocionActual='feliz', selectedDate=null;
 let currentMonth=new Date().getMonth(), currentYear=new Date().getFullYear();
-let pomodoroInterval=null, pomodoroTime=25*60;
-let audioCtx=null;
+let pomodoroInterval=null, pomodoroTime=25*60, audioCtx=null;
+const $ = s=>document.querySelector(s);
+const $$ = s=>document.querySelectorAll(s);
 
-/* ===== DOM ===== */
-const avatarEmocional = document.getElementById('avatar-emocional');
-const modoCalmaBtn = document.getElementById('modo-calma-btn');
-const darkToggleBtn = document.getElementById('day-night-toggle');
-const settingsBtn = document.getElementById('settings-btn');
-const settingsSection = document.getElementById('settings-section');
-const backgroundSelector = document.getElementById('background-selector');
-const avatarSelector = document.getElementById('avatar-selector');
-const autoThemeToggle = document.getElementById('auto-theme-toggle');
-const soundToggle = document.getElementById('sound-toggle');
-const todayCounter = document.getElementById('today-counter');
+/* DOM */
+const avatarEmocional = $('#avatar-emocional');
+const modoCalmaBtn = $('#modo-calma-btn');
+const darkToggleBtn = $('#day-night-toggle');
+const settingsBtn = $('#settings-btn');
+const settingsSection = $('#settings-section');
+const backgroundSelector = $('#background-selector');
+const avatarSelector = $('#avatar-selector');
+const autoThemeToggle = $('#auto-theme-toggle');
+const soundToggle = $('#sound-toggle');
+const todayCounter = $('#today-counter');
 
-const taskInput = document.getElementById('task-input');
-const addTaskBtn = document.getElementById('add-task-btn');
-const taskList = document.getElementById('task-list');
-const emocionCards = document.querySelectorAll('.emocion-card');
-const spaceBtns = document.querySelectorAll('.space-btn');
+const taskInput = $('#task-input');
+const addTaskBtn = $('#add-task-btn');
+const searchInput = $('#search-input');
+const clearSearchBtn = $('#clear-search-btn');
+const taskList = $('#task-list');
+const emocionCards = $$('.emocion-card');
+const spaceBtns = $$('.space-btn');
 
-const calendarGrid = document.getElementById('calendar-grid');
-const calendarMonth = document.getElementById('calendar-month');
-const prevMonthBtn = document.getElementById('prev-month');
-const nextMonthBtn = document.getElementById('next-month');
-const calendarTasks = document.getElementById('calendar-tasks');
+const calendarGrid = $('#calendar-grid');
+const calendarMonth = $('#calendar-month');
+const prevMonthBtn = $('#prev-month');
+const nextMonthBtn = $('#next-month');
+const calendarTasks = $('#calendar-tasks');
 
-const dayModal = document.getElementById('day-modal');
-const modalCloses = document.querySelectorAll('.modal-close');
-const modalDate = document.getElementById('day-title');
-const modalEmotion = document.getElementById('modal-emotion');
-const modalNotification = document.getElementById('modal-notification');
-const modalTasks = document.getElementById('modal-tasks');
-const modalTaskInput = document.getElementById('modal-task-input');
-const modalAddTaskBtn = document.getElementById('modal-add-task-btn');
-const modalTaskNotes = document.getElementById('modal-task-notes');
+const dayModal = $('#day-modal');
+const modalDate = $('#day-title');
+const modalEmotion = $('#modal-emotion');
+const modalNotification = $('#modal-notification');
+const modalTasks = $('#modal-tasks');
+const modalTaskInput = $('#modal-task-input');
+const modalAddTaskBtn = $('#modal-add-task-btn');
+const modalCloses = $$('.modal-close');
 
-const focusModeModal = document.getElementById('focus-mode');
-const focusTask = document.getElementById('focus-task');
-const pomodoroTimer = document.getElementById('pomodoro-timer');
-const pomodoroStartBtn = document.getElementById('pomodoro-start-btn');
-const pomodoroResetBtn = document.getElementById('pomodoro-reset-btn');
+const focusModeModal = $('#focus-mode');
+const focusTask = $('#focus-task');
+const pomodoroTimer = $('#pomodoro-timer');
+const pomodoroStartBtn = $('#pomodoro-start-btn');
+const pomodoroResetBtn = $('#pomodoro-reset-btn');
 
-const openAntistressBtn = document.getElementById('open-antistress-btn');
-const antistressModal = document.getElementById('antistress-modal');
-const closeAntistressModal = document.getElementById('close-antistress-modal');
-const antistressContainer = document.getElementById('antistress-bubbles-container');
+const openAntistressBtn = $('#open-antistress-btn');
+const antistressModal = $('#antistress-modal');
+const closeAntistressModal = $('#close-antistress-modal');
+const antistressContainer = $('#antistress-bubbles-container');
 
-const pinModal = document.getElementById('pin-modal');
-const pinInput = document.getElementById('pin-input');
-const pinSubmitBtn = document.getElementById('pin-submit-btn');
-const pinSetBtn = document.getElementById('pin-set-btn');
-const pinDisableBtn = document.getElementById('pin-disable-btn');
-const openPinBtn = document.getElementById('open-pin-btn');
+const pinModal = $('#pin-modal');
+const pinInput = $('#pin-input');
+const pinSubmitBtn = $('#pin-submit-btn');
+const pinSetBtn = $('#pin-set-btn');
+const pinDisableBtn = $('#pin-disable-btn');
+const openPinBtn = $('#open-pin-btn');
 
-const notifPermissionBtn = document.getElementById('notif-permission-btn');
+const notifPermissionBtn = $('#notif-permission-btn');
+
+const reminderModal = $('#reminder-modal');
+const reminderDT = $('#reminder-dt');
+const reminderSaveBtn = $('#reminder-save-btn');
+const reminderClearBtn = $('#reminder-clear-btn');
+const reminderFor = $('#reminder-for');
+
+const snackbar = $('#snackbar');
 
 /* ===== Utils ===== */
 const setHidden = (el, v)=> el && el.classList.toggle('hidden', !!v);
@@ -99,20 +102,22 @@ function playBeep(){
   g.gain.exponentialRampToValueAtTime(0.0001,audioCtx.currentTime+.18);
   o.connect(g).connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime+.2);
 }
-
-/* ===== Tema ===== */
-function autoThemeApplyByHour(){ const h=new Date().getHours(); state.settings.dayMode = (h>=7 && h<19); }
-function applyDayMode(){
-  document.body.classList.toggle('day-mode', !!state.settings.dayMode);
-  darkToggleBtn.textContent = state.settings.dayMode ? '🌙' : '☀️';
+function showToast(msg, withUndo=false, onUndo=()=>{}){
+  snackbar.innerHTML = `<span>${msg}</span>${withUndo?'<button class="undo">Deshacer</button>':''}`;
+  snackbar.classList.add('show');
+  let timer = setTimeout(()=> snackbar.classList.remove('show'), 4000);
+  const btn = snackbar.querySelector('.undo');
+  if(btn){ btn.onclick = ()=>{ clearTimeout(timer); snackbar.classList.remove('show'); onUndo(); }; }
 }
+function autoThemeApplyByHour(){ const h=new Date().getHours(); state.settings.dayMode = (h>=7 && h<19); }
+function applyDayMode(){ document.body.classList.toggle('day-mode', !!state.settings.dayMode); darkToggleBtn.textContent = state.settings.dayMode ? '🌙' : '☀️'; }
+
+/* ===== Tema / Fondo / Avatar ===== */
 darkToggleBtn?.addEventListener('click', ()=>{
   if (state.settings.autoTheme) { state.settings.autoTheme=false; autoThemeToggle.checked=false; }
   state.settings.dayMode=!state.settings.dayMode; saveState(); applyDayMode(); darkToggleBtn.classList.add('pulse');
   setTimeout(()=>darkToggleBtn.classList.remove('pulse'),220);
 });
-
-/* ===== Fondo + Avatar ===== */
 function applyBackground(){
   const bgMap={
     default:'radial-gradient(1200px 800px at 70% -10%, #2a2f6a33, transparent 60%), var(--bg)',
@@ -169,7 +174,7 @@ function loadSuggestedTasks(){
     estresado:['Respirar profundo','Tomar un descanso','Organizar escritorio'],
     calmo:['Leer un libro','Pasear al aire libre','Planificar el día']
   };
-  const dl=document.getElementById('task-suggestions'); if(!dl) return;
+  const dl=$('#task-suggestions'); if(!dl) return;
   dl.innerHTML=''; const set=new Set([...(base[emocionActual]||[]), ...(state.frequentTasks||[])]);
   set.forEach(v=>{ const o=document.createElement('option'); o.value=v; dl.appendChild(o); });
 }
@@ -182,92 +187,100 @@ function pushFrequent(texto){
 /* ===== Tareas ===== */
 function addTask(texto, fecha = selectedDate || todayStr()){
   const t=(texto||'').trim(); if(!t) return;
-  state.tasks.push({
-    id: uid(),
-    texto: t,
-    completada: false,
-    space: currentSpace,
-    fecha,
-    notas: '',
-    createdAt: Date.now(),
-    reminderAt: null
-  });
-  saveState();
-  pushFrequent(t);
-  renderTaskList();
-  updateTodayCounter();
-  if(selectedDate) renderModalTasks(selectedDate);
+  const newTask = { id:uid(), texto:t, completada:false, space:currentSpace, fecha, notas:'', createdAt:Date.now(), reminderAt:null };
+  state.tasks.push(newTask);
+  saveState(); pushFrequent(t); renderTaskList(); updateTodayCounter(); if(selectedDate) renderModalTasks(selectedDate);
+  showToast('Tarea creada');
 }
-
 function toggleTask(id, complete){
   const task=state.tasks.find(x=>x.id===id); if(!task) return;
-  task.completada=!!complete;
-  if (complete && task.reminderAt) { // Consumir recordatorio si se completa
-    task.reminderAt = null;
-  }
+  const prev = {...task};
+  task.completada=!!complete; if(complete && task.reminderAt) task.reminderAt=null;
   saveState();
-  if(complete){
-    confetti(); playBeep();
-    avatarEmocional.classList.add('bounce');
-    setTimeout(()=>avatarEmocional.classList.remove('bounce'),500);
-    if('vibrate' in navigator) navigator.vibrate(40);
-    updateAvatarByProgress();
-  }
+  if(complete){ confetti(); playBeep(); avatarEmocional.classList.add('bounce'); setTimeout(()=>avatarEmocional.classList.remove('bounce'),500); if('vibrate' in navigator) navigator.vibrate(40); updateAvatarByProgress(); }
   renderTaskList(); updateTodayCounter(); if(selectedDate) renderModalTasks(selectedDate);
+  showToast(complete?'Tarea completada':'Tarea re‑abierta', true, ()=>{ Object.assign(task, prev); saveState(); renderTaskList(); updateTodayCounter(); if(selectedDate) renderModalTasks(selectedDate); });
 }
-
 function deleteTask(id){
   const t=state.tasks.find(x=>x.id===id); if(!t) return;
-  if(!confirm(`¿Eliminar la tarea?\n• ${t.texto}`)) return;
-  // cancelar timer si existe
-  if (reminderTimers.has(id)) { clearTimeout(reminderTimers.get(id)); reminderTimers.delete(id); }
+  const backup = {...t};
   state.tasks = state.tasks.filter(x=>x.id!==id);
+  if (reminderTimers.has(id)) { clearTimeout(reminderTimers.get(id)); reminderTimers.delete(id); }
   saveState(); renderTaskList(); updateTodayCounter(); if(selectedDate) renderModalTasks(selectedDate);
+  showToast('Tarea eliminada', true, ()=>{ state.tasks.push(backup); saveState(); renderTaskList(); updateTodayCounter(); if(selectedDate) renderModalTasks(selectedDate); });
+}
+
+/* Edición inline (doble click o F2) */
+function makeEditable(span, task){
+  if (span.dataset.editing==='1') return;
+  span.dataset.editing='1';
+  const input=document.createElement('input');
+  input.type='text'; input.value=task.texto; input.className='edit-input';
+  input.style.width = Math.min(Math.max(span.textContent.length*9, 120), 360)+'px';
+  span.replaceWith(input); input.focus(); input.select();
+  const commit = (ok)=>{
+    if(ok){
+      const v=input.value.trim(); if(v && v!==task.texto){ task.texto=v; saveState(); renderTaskList(); }
+      else renderTaskList();
+    }else{ renderTaskList(); }
+  };
+  input.addEventListener('keydown',e=>{ if(e.key==='Enter') commit(true); if(e.key==='Escape') commit(false); });
+  input.addEventListener('blur',()=> commit(true));
 }
 
 addTaskBtn?.addEventListener('click', ()=>{ addTask(taskInput.value); taskInput.value=''; });
-taskInput?.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ addTask(taskInput.value); taskInput.value=''; } });
+taskInput?.addEventListener('keydown', e=>{ if(e.key==='Enter'){ addTask(taskInput.value); taskInput.value=''; } });
 
+/* Render lista (con búsqueda + inline edit + recordatorios) */
+let queryText = '';
 function renderTaskList(){
   taskList.innerHTML='';
   const items = state.tasks
-    .filter(t=>t.space===currentSpace)
+    .filter(t=>t.space===currentSpace && (!queryText || t.texto.toLowerCase().includes(queryText)))
     .sort((a,b)=> Number(a.completada)-Number(b.completada) || a.createdAt-b.createdAt);
 
   items.forEach(t=>{
     const li=document.createElement('li');
     li.className='task-item'+(t.completada?' complete':'');
     li.dataset.id=t.id; li.draggable=true;
-    li.innerHTML = `
-      <span>${t.texto}</span>
-      <div class="task-actions">
-        <button data-action="toggle" title="Completar">${t.completada?'✔️':'⬜'}</button>
-        <button data-action="bell" class="bell ${t.reminderAt?'has-reminder':''}" title="${t.reminderAt ? 'Quitar recordatorio' : 'Agregar recordatorio'}">🔔</button>
-        <button data-action="delete" title="Borrar">🗑️</button>
-        <button data-action="focus"  title="Enfocar">🎯</button>
-      </div>
-    `;
+
+    const span=document.createElement('span');
+    span.textContent=t.texto;
+    span.addEventListener('dblclick', ()=> makeEditable(span, t));
+    li.appendChild(span);
+
+    const actions=document.createElement('div'); actions.className='task-actions';
+    actions.innerHTML = `
+      <button data-action="toggle" title="Completar">${t.completada?'✔️':'⬜'}</button>
+      <button data-action="bell" class="bell ${t.reminderAt?'has-reminder':''}" title="${t.reminderAt ? 'Quitar recordatorio' : 'Agregar recordatorio'}">🔔</button>
+      <button data-action="delete" title="Borrar">🗑️</button>
+      <button data-action="focus"  title="Enfocar">🎯</button>`;
+    li.appendChild(actions);
+
     li.addEventListener('dragstart', ()=> li.classList.add('dragging'));
     li.addEventListener('dragend',   ()=> li.classList.remove('dragging'));
+    li.addEventListener('keydown', e=>{ if(e.key==='F2') makeEditable(span, t); });
+
     li.addEventListener('click', async (e)=>{
       const b=e.target.closest('button'); if(!b) return;
-      const action=b.dataset.action;
-      if(action==='toggle') toggleTask(t.id, !t.completada);
-      if(action==='delete') deleteTask(t.id);
-      if(action==='focus')  startFocusMode(t.id);
-      if(action==='bell'){
-        if (t.reminderAt) {
-          if (confirm('¿Quitar recordatorio?')) cancelReminderForTask(t);
-        } else {
-          const ok = await ensureNotifPermission();
-          if (!ok) alert('No tienes permisos de notificación. Usaré un aviso en pantalla.');
-          promptReminderForTask(t);
-        }
+      const act=b.dataset.action;
+      if(act==='toggle') toggleTask(t.id, !t.completada);
+      if(act==='delete') deleteTask(t.id);
+      if(act==='focus')  startFocusMode(t.id);
+      if(act==='bell'){
+        openReminderPicker(t);
       }
     });
     taskList.appendChild(li);
   });
 }
+
+/* Búsqueda */
+searchInput?.addEventListener('input', ()=>{
+  queryText = (searchInput.value||'').trim().toLowerCase();
+  renderTaskList();
+});
+clearSearchBtn?.addEventListener('click', ()=>{ searchInput.value=''; queryText=''; renderTaskList(); });
 
 /* Spaces */
 spaceBtns.forEach(btn=>{
@@ -282,16 +295,13 @@ function updateAvatarByProgress(){
   const tasks=state.tasks.filter(t=>t.space===currentSpace);
   const total=tasks.length, completed=tasks.filter(t=>t.completada).length;
   const p= total? completed/total : 0;
-  if(p>0.8) setEmocion('feliz');
-  else if(p>0.5) setEmocion('calmo');
-  else if(p>0.2) setEmocion('estresado');
-  else setEmocion('triste');
+  if(p>0.8) setEmocion('feliz'); else if(p>0.5) setEmocion('calmo'); else if(p>0.2) setEmocion('estresado'); else setEmocion('triste');
 }
 
 /* Modo calma */
 modoCalmaBtn?.addEventListener('click', ()=>{
   document.body.classList.toggle('modo-calma');
-  const s=document.getElementById('semana-resumen');
+  const s=$('#semana-resumen');
   if(s) s.textContent = document.body.classList.contains('modo-calma') ? 'Respirá hondo 🌿' : 'Tu semana: 😊😊😣😌😢';
 });
 
@@ -306,28 +316,13 @@ pomodoroStartBtn?.addEventListener('click', ()=>{
   else{
     pomodoroInterval=setInterval(()=>{
       pomodoroTime--; updatePomodoroTimer();
-      if(pomodoroTime<=0){
-        clearInterval(pomodoroInterval); pomodoroInterval=null; pomodoroStartBtn.textContent='Iniciar';
-        if('vibrate' in navigator) navigator.vibrate(180);
-        alert('¡Pomodoro completado!');
-      }
+      if(pomodoroTime<=0){ clearInterval(pomodoroInterval); pomodoroInterval=null; pomodoroStartBtn.textContent='Iniciar'; if('vibrate' in navigator) navigator.vibrate(180); alert('¡Pomodoro completado!'); }
     },1000);
     pomodoroStartBtn.textContent='Pausar';
   }
 });
-pomodoroResetBtn?.addEventListener('click', ()=>{
-  clearInterval(pomodoroInterval); pomodoroInterval=null;
-  pomodoroTime=25*60; updatePomodoroTimer(); pomodoroStartBtn.textContent='Iniciar';
-});
-function updatePomodoroTimer(){
-  const m=Math.floor(pomodoroTime/60), s=String(pomodoroTime%60).padStart(2,'0');
-  pomodoroTimer.textContent=`${m}:${s}`;
-}
-modalCloses.forEach(b=> b.addEventListener('click', ()=>{
-  const id=b.getAttribute('data-close');
-  if(id==='focus-mode'){ clearInterval(pomodoroInterval); pomodoroInterval=null; pomodoroStartBtn.textContent='Iniciar'; }
-  setHidden(document.getElementById(id),true);
-}));
+pomodoroResetBtn?.addEventListener('click', ()=>{ clearInterval(pomodoroInterval); pomodoroInterval=null; pomodoroTime=25*60; updatePomodoroTimer(); pomodoroStartBtn.textContent='Iniciar'; });
+function updatePomodoroTimer(){ const m=Math.floor(pomodoroTime/60), s=String(pomodoroTime%60).padStart(2,'0'); pomodoroTimer.textContent=`${m}:${s}`; }
 
 /* Confetti bubbles */
 function confetti(){
@@ -343,119 +338,65 @@ function confetti(){
   document.body.appendChild(wrap); setTimeout(()=> wrap.remove(), 1600);
 }
 
-/* ===== Recordatorios (Notifications API) ===== */
+/* ===== Recordatorios ===== */
 const reminderTimers = new Map(); // id -> timeoutId
-
-async function ensureNotifPermission(){
-  if (!('Notification' in window)) return false;
-  if (Notification.permission === 'granted') return true;
-  if (Notification.permission === 'denied') return false;
-  try { const res = await Notification.requestPermission(); return res === 'granted'; }
-  catch { return false; }
-}
-
+async function ensureNotifPermission(){ if (!('Notification' in window)) return false; if (Notification.permission==='granted') return true; if (Notification.permission==='denied') return false; try{const r=await Notification.requestPermission(); return r==='granted';}catch{return false;} }
 function scheduleReminderForTask(task){
-  // Limpio previo
-  if (reminderTimers.has(task.id)) {
-    clearTimeout(reminderTimers.get(task.id));
-    reminderTimers.delete(task.id);
-  }
+  if (reminderTimers.has(task.id)) { clearTimeout(reminderTimers.get(task.id)); reminderTimers.delete(task.id); }
   if (!task.reminderAt) return;
-
-  const when = new Date(task.reminderAt).getTime();
-  const now = Date.now();
-  const delay = when - now;
-  if (delay <= 0 || task.completada) {
-    task.reminderAt = null;
-    saveState();
-    return;
-  }
-
-  const tid = setTimeout(async () => {
+  const when=new Date(task.reminderAt).getTime(), delay = when - Date.now();
+  if (delay <= 0 || task.completada) { task.reminderAt=null; saveState(); return; }
+  const tid = setTimeout(async ()=>{
     const can = await ensureNotifPermission();
-    const title = '⏰ Recordatorio';
-    const body  = task.texto;
-    if (can) {
-      new Notification(title, { body, badge: '', icon: '', vibrate: [40,20,40] });
-    } else {
-      if ('vibrate' in navigator) navigator.vibrate(120);
-      alert(`${title}\n\n${body}`);
-    }
-    playBeep();
-    task.reminderAt = null; // se consume
-    saveState();
-    renderTaskList();
-    if (selectedDate) renderModalTasks(selectedDate);
+    const title='⏰ Recordatorio', body=task.texto;
+    if (can) new Notification(title, { body, vibrate:[40,20,40] });
+    else { if('vibrate' in navigator) navigator.vibrate(120); alert(`${title}\n\n${body}`); }
+    playBeep(); task.reminderAt=null; saveState(); renderTaskList(); if(selectedDate) renderModalTasks(selectedDate);
   }, delay);
-
   reminderTimers.set(task.id, tid);
 }
+function scheduleAllReminders(){ reminderTimers.forEach(id=>clearTimeout(id)); reminderTimers.clear(); state.tasks.forEach(scheduleReminderForTask); }
 
-function scheduleAllReminders(){
-  reminderTimers.forEach(id => clearTimeout(id));
-  reminderTimers.clear();
-  state.tasks.forEach(t => scheduleReminderForTask(t));
+/* Picker UI */
+let reminderTaskRef = null;
+function openReminderPicker(task){
+  reminderTaskRef = task;
+  $('#reminder-for').textContent = `Para: ${task.texto}`;
+  // valor por defecto: ahora + 30 min
+  const base = task.reminderAt ? new Date(task.reminderAt) : new Date(Date.now()+30*60000);
+  reminderDT.value = base.toISOString().slice(0,16);
+  setHidden(reminderModal,false);
 }
-
-function promptReminderForTask(task){
-  const raw = prompt('Recordarme en (minutos):', '30');
-  if (raw === null) return; // cancelado
-  const minutes = parseInt(raw, 10);
-  if (!Number.isFinite(minutes) || minutes <= 0) {
-    alert('Ingresa un número de minutos válido.');
-    return;
-  }
-  const at = new Date(Date.now() + minutes*60000);
-  task.reminderAt = at.toISOString();
-  saveState();
-  scheduleReminderForTask(task);
-  renderTaskList();
-  if (selectedDate) renderModalTasks(selectedDate);
-}
-
-function cancelReminderForTask(task){
-  task.reminderAt = null;
-  saveState();
-  scheduleReminderForTask(task);
-  renderTaskList();
-  if (selectedDate) renderModalTasks(selectedDate);
-}
+reminderSaveBtn?.addEventListener('click', ()=>{
+  if(!reminderTaskRef) return;
+  const val = reminderDT.value;
+  if(!val){ alert('Selecciona fecha y hora.'); return; }
+  reminderTaskRef.reminderAt = new Date(val).toISOString();
+  saveState(); scheduleReminderForTask(reminderTaskRef); renderTaskList(); if(selectedDate) renderModalTasks(selectedDate);
+  setHidden(reminderModal,true); showToast('Recordatorio guardado');
+});
+reminderClearBtn?.addEventListener('click', ()=>{
+  if(!reminderTaskRef) return;
+  reminderTaskRef.reminderAt = null; saveState(); scheduleReminderForTask(reminderTaskRef); renderTaskList(); if(selectedDate) renderModalTasks(selectedDate);
+  setHidden(reminderModal,true); showToast('Recordatorio quitado');
+});
 
 /* Calendario */
-function getMonthName(m){
-  return ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"][m];
-}
+function getMonthName(m){ return ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"][m]; }
 function renderCalendar(month,year){
   calendarGrid.innerHTML=''; calendarMonth.textContent=`${getMonthName(month)} ${year}`;
-  const first=new Date(year,month,1).getDay(); // 0 dom
-  const days=new Date(year,month+1,0).getDate();
-  ['L','M','X','J','V','S','D'].forEach(d=>{
-    const el=document.createElement('div'); el.className='calendar-day calendar-label'; el.textContent=d; calendarGrid.appendChild(el);
-  });
-  for(let i=0;i<(first===0?6:first-1);i++){
-    const e=document.createElement('div'); e.className='calendar-day calendar-empty'; calendarGrid.appendChild(e);
-  }
+  const first=new Date(year,month,1).getDay(); const days=new Date(year,month+1,0).getDate();
+  ['L','M','X','J','V','S','D'].forEach(d=>{ const el=document.createElement('div'); el.className='calendar-day calendar-label'; el.textContent=d; calendarGrid.appendChild(el); });
+  for(let i=0;i<(first===0?6:first-1);i++){ const e=document.createElement('div'); e.className='calendar-day calendar-empty'; calendarGrid.appendChild(e); }
   for(let d=1; d<=days; d++){
     const date=`${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const el=document.createElement('div'); el.className='calendar-day'; el.textContent=d;
-    const now=new Date();
-    if(now.getFullYear()===year && now.getMonth()===month && now.getDate()===d) el.classList.add('today');
+    const now=new Date(); if(now.getFullYear()===year && now.getMonth()===month && now.getDate()===d) el.classList.add('today');
     if(selectedDate===date) el.classList.add('selected');
-    const emo=state.emotions[date];
-    if(emo){
-      const map={feliz:'😊',triste:'😢',estresado:'😣',calmo:'😌'};
-      const s=document.createElement('span'); s.className='emoji-small'; s.textContent=map[emo]||'😶'; el.appendChild(s);
-    }
-    el.addEventListener('click', ()=>{
-      selectedDate=date; renderCalendar(currentMonth,currentYear); renderModalTasks(date); setHidden(dayModal,false);
-    });
+    const emo=state.emotions[date]; if(emo){ const map={feliz:'😊',triste:'😢',estresado:'😣',calmo:'😌'}; const s=document.createElement('span'); s.className='emoji-small'; s.textContent=map[emo]||'😶'; el.appendChild(s); }
+    el.addEventListener('click', ()=>{ selectedDate=date; renderCalendar(currentMonth,currentYear); renderModalTasks(date); setHidden(dayModal,false); });
     el.addEventListener('dragover', e=>e.preventDefault());
-    el.addEventListener('drop', e=>{
-      e.preventDefault();
-      const li=document.querySelector('.task-item.dragging'); if(!li) return;
-      const id=li.dataset.id; const t=state.tasks.find(x=>x.id===id); if(!t) return;
-      t.fecha=date; saveState(); renderModalTasks(date); renderTaskList();
-    });
+    el.addEventListener('drop', e=>{ e.preventDefault(); const li=document.querySelector('.task-item.dragging'); if(!li) return; const id=li.dataset.id; const t=state.tasks.find(x=>x.id===id); if(!t) return; t.fecha=date; saveState(); renderModalTasks(date); renderTaskList(); });
     calendarGrid.appendChild(el);
   }
 }
@@ -482,77 +423,40 @@ function renderModalTasks(date){
       const id=b.getAttribute('data-id'); const act=b.getAttribute('data-act');
       if(act==='toggle') toggleTask(id, !(state.tasks.find(x=>x.id===id)?.completada));
       if(act==='delete') deleteTask(id);
-      if(act==='bell'){
-        const task = state.tasks.find(x=>x.id===id);
-        if (!task) return;
-        if (task.reminderAt) {
-          if (confirm('¿Quitar recordatorio?')) cancelReminderForTask(task);
-        } else {
-          ensureNotifPermission().then(()=> promptReminderForTask(task));
-        }
-      }
+      if(act==='bell'){ const task = state.tasks.find(x=>x.id===id); if(task) openReminderPicker(task); }
       renderModalTasks(date);
     });
   });
 }
-modalAddTaskBtn?.addEventListener('click', ()=>{
-  const t=(modalTaskInput.value||'').trim(); if(!t||!selectedDate) return;
-  addTask(t, selectedDate); modalTaskInput.value=''; renderModalTasks(selectedDate);
-});
-modalTaskInput?.addEventListener('keydown', e=>{ if(e.key==='Enter') modalAddTaskBtn.click(); });
+modalAddTaskBtn?.addEventListener('click', ()=>{ const t=(modalTaskInput.value||'').trim(); if(!t||!selectedDate) return; addTask(t, selectedDate); modalTaskInput.value=''; renderModalTasks(selectedDate); });
+modalCloses.forEach(b=> b.addEventListener('click', ()=>{ const id=b.getAttribute('data-close'); setHidden(document.getElementById(id),true); if(id==='focus-mode'){ clearInterval(pomodoroInterval); pomodoroInterval=null; pomodoroStartBtn.textContent='Iniciar'; } }));
 
 /* Floating add -> hoy */
-document.getElementById('floating-add-btn')?.addEventListener('click', ()=>{
-  selectedDate=todayStr(); renderModalTasks(selectedDate); setHidden(dayModal,false);
-});
+$('#floating-add-btn')?.addEventListener('click', ()=>{ selectedDate=todayStr(); renderModalTasks(selectedDate); setHidden(dayModal,false); });
 
-/* Anti-stress bubbles */
-function makeBubbles(){
-  if(!antistressContainer) return; antistressContainer.innerHTML='';
-  for(let i=0;i<10;i++){
-    const b=document.createElement('div'); b.className='antistress-bubble';
-    b.addEventListener('pointerdown', ()=>{
-      b.classList.add('exploding');
-      setTimeout(()=>{
-        b.remove();
-        if(antistressContainer.childElementCount===0) makeBubbles();
-      },280);
-    });
-    antistressContainer.appendChild(b);
-  }
-}
+/* Anti-stress */
+function makeBubbles(){ if(!antistressContainer) return; antistressContainer.innerHTML=''; for(let i=0;i<10;i++){ const b=document.createElement('div'); b.className='antistress-bubble'; b.addEventListener('pointerdown', ()=>{ b.classList.add('exploding'); setTimeout(()=>{ b.remove(); if(antistressContainer.childElementCount===0) makeBubbles(); },280); }); antistressContainer.appendChild(b); } }
 openAntistressBtn?.addEventListener('click', ()=>{ setHidden(antistressModal,false); makeBubbles(); });
 closeAntistressModal?.addEventListener('click', ()=> setHidden(antistressModal,true));
 antistressModal?.addEventListener('click', e=>{ if(e.target===antistressModal) setHidden(antistressModal,true); });
 
 /* Atajos */
 window.addEventListener('keydown', e=>{
-  if(e.key==='Escape'){
-    [focusModeModal, dayModal, antistressModal, pinModal].some(m=> m && !m.classList.contains('hidden') && (setHidden(m,true), true));
-  }
+  if(e.key==='Escape'){ [focusModeModal, dayModal, antistressModal, pinModal, reminderModal].some(m=> m && !m.classList.contains('hidden') && (setHidden(m,true), true)); }
+  if((e.key==='n' || e.key==='N') && (e.ctrlKey||e.metaKey) || e.key==='N'){ taskInput?.focus(); e.preventDefault(); }
+  if(e.key==='/'){ searchInput?.focus(); e.preventDefault(); }
+  if(e.key==='s' || e.key==='S'){ settingsSection?.classList.toggle('hidden'); e.preventDefault(); }
+  if(e.key==='d' || e.key==='D'){ darkToggleBtn?.click(); e.preventDefault(); }
 });
 
 /* Contador hoy */
-function updateTodayCounter(){
-  const n = state.tasks.filter(t=>t.fecha===todayStr() && t.completada && t.space===currentSpace).length;
-  todayCounter.textContent=`Hoy: ${n} ✔️`;
-}
+function updateTodayCounter(){ const n = state.tasks.filter(t=>t.fecha===todayStr() && t.completada && t.space===currentSpace).length; todayCounter.textContent=`Hoy: ${n} ✔️`; }
 
 /* Settings toggles */
 settingsBtn?.addEventListener('click', ()=>{ settingsSection.classList.toggle('hidden'); });
-autoThemeToggle?.addEventListener('change', ()=>{
-  state.settings.autoTheme=autoThemeToggle.checked;
-  if(state.settings.autoTheme){ autoThemeApplyByHour(); }
-  saveState(); applyDayMode();
-});
+autoThemeToggle?.addEventListener('change', ()=>{ state.settings.autoTheme=autoThemeToggle.checked; if(state.settings.autoTheme){ autoThemeApplyByHour(); } saveState(); applyDayMode(); });
 soundToggle?.addEventListener('change', ()=>{ state.settings.soundOn=soundToggle.checked; saveState(); });
-notifPermissionBtn?.addEventListener('click', async ()=>{
-  if (!('Notification' in window)) { alert('Este navegador no soporta notificaciones.'); return; }
-  let res = Notification.permission;
-  if (res !== 'granted'){ try{ res = await Notification.requestPermission(); }catch{} }
-  if (res === 'granted'){ new Notification('✅ Notificaciones habilitadas', { body: 'Todo listo para tus recordatorios.' }); }
-  else { alert('No se otorgaron permisos. Usaré avisos en pantalla como fallback.'); }
-});
+notifPermissionBtn?.addEventListener('click', async ()=>{ if (!('Notification' in window)) { alert('Este navegador no soporta notificaciones.'); return; } let res = Notification.permission; if (res !== 'granted'){ try{ res = await Notification.requestPermission(); }catch{} } if (res === 'granted'){ new Notification('✅ Notificaciones habilitadas', { body: 'Todo listo para tus recordatorios.' }); } else { alert('No se otorgaron permisos. Usaré avisos en pantalla como fallback.'); } });
 
 /* Init */
 function init(){
@@ -560,22 +464,16 @@ function init(){
   avatarSelector.value = state.settings.avatar || 'default';
   autoThemeToggle.checked = !!state.settings.autoTheme;
   soundToggle.checked = !!state.settings.soundOn;
-
   if(state.settings.autoTheme) autoThemeApplyByHour();
   applyDayMode(); applyBackground();
 
-  setEmocion(emocionActual); // también carga sugerencias
+  setEmocion(emocionActual);
   renderCalendar(currentMonth,currentYear);
   renderTaskList();
   updateTodayCounter();
-  scheduleAllReminders();   // programa los recordatorios pendientes
+  scheduleAllReminders();
   maybeLock();
 
-  // Re‑aplicar tema al volver (por si cambió la hora)
-  document.addEventListener('visibilitychange', ()=>{
-    if(document.visibilityState==='visible' && state.settings.autoTheme){
-      autoThemeApplyByHour(); applyDayMode();
-    }
-  });
+  document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible' && state.settings.autoTheme){ autoThemeApplyByHour(); applyDayMode(); } });
 }
 window.addEventListener('DOMContentLoaded', init);
