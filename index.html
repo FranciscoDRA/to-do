@@ -1,35 +1,33 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>TaskGarden</title>
-  <link rel="stylesheet" href="styles.css">
-  <link rel="manifest" href="manifest.webmanifest">
-  <meta name="theme-color" content="#191932">
+  <link rel="stylesheet" href="styles.css"/>
+  <!-- Manifest removido -->
+  <!-- Service Worker removido -->
+  <meta name="theme-color" content="#191932"/>
 </head>
 <body>
   <div class="main-bg"></div>
-  <div id="login-section" class="hidden">
-    <button id="login-anon-btn">Iniciar sesión anónima</button>
-    <button id="login-email-btn">Iniciar sesión con email</button>
-    <div id="email-login-form" class="hidden">
-      <input type="email" id="email-input" placeholder="Email">
-      <input type="password" id="password-input" placeholder="Contraseña">
-      <button id="email-signin-btn">Iniciar sesión</button>
-      <button id="email-signup-btn">Registrarse</button>
-    </div>
-  </div>
+
+  <!-- PIN (opcional, se activa desde el mismo modal) -->
   <div id="pin-modal" class="modal hidden">
     <div class="modal-content">
-      <span class="modal-close">&times;</span>
-      <h2>Ingresar PIN</h2>
-      <input type="password" id="pin-input" placeholder="Ingresa tu PIN (4 dígitos)">
-      <button id="pin-submit-btn">Desbloquear</button>
-      <button id="pin-set-btn">Configurar PIN</button>
+      <span class="modal-close" data-close="pin-modal">&times;</span>
+      <h2>Desbloquear</h2>
+      <input type="password" id="pin-input" placeholder="Ingresa tu PIN (4 dígitos)"/>
+      <div style="display:flex; gap:.5rem; margin-top:.5rem;">
+        <button id="pin-submit-btn">Desbloquear</button>
+        <button id="pin-set-btn">Configurar/Actualizar PIN</button>
+        <button id="pin-disable-btn">Quitar PIN</button>
+      </div>
+      <small style="opacity:.8;display:block;margin-top:.6rem;">El PIN se guarda localmente en este dispositivo.</small>
     </div>
   </div>
-  <div id="app" class="hidden">
+
+  <div id="app">
     <header>
       <div>
         <h1>TaskGarden</h1>
@@ -37,29 +35,33 @@
       </div>
       <div id="avatar-emocional">😊</div>
       <div>
-        <button id="modo-calma-btn">🧘</button>
-        <button id="day-night-toggle">🌙</button>
-        <button id="settings-btn">⚙️</button>
+        <button id="modo-calma-btn" title="Modo calma">🧘</button>
+        <button id="day-night-toggle" title="Modo día/noche">🌙</button>
+        <button id="settings-btn" title="Configuraciones">⚙️</button>
       </div>
     </header>
+
     <section id="emocional-cards">
-      <div class="emocion-card" data-emocion="feliz"><span class="emoji">😊</span>Feliz</div>
+      <div class="emocion-card selected" data-emocion="feliz"><span class="emoji">😊</span>Feliz</div>
       <div class="emocion-card" data-emocion="triste"><span class="emoji">😢</span>Triste</div>
       <div class="emocion-card" data-emocion="estresado"><span class="emoji">😣</span>Estresado</div>
       <div class="emocion-card" data-emocion="calmo"><span class="emoji">😌</span>Calmo</div>
     </section>
+
     <section id="add-task" class="input-row">
       <div class="input-group">
-        <input type="text" id="task-input" placeholder="Nueva tarea..." list="task-suggestions">
+        <input type="text" id="task-input" placeholder="Nueva tarea..." list="task-suggestions"/>
         <datalist id="task-suggestions"></datalist>
         <button id="add-task-btn">+</button>
       </div>
     </section>
+
     <section id="spaces">
       <button class="space-btn active" data-space="personal">Personal</button>
       <button class="space-btn" data-space="trabajo">Trabajo</button>
       <button class="space-btn" data-space="creatividad">Creatividad</button>
     </section>
+
     <section id="calendar-section">
       <div class="calendar-container">
         <div class="calendar-header">
@@ -71,9 +73,11 @@
       </div>
       <div id="calendar-tasks"></div>
     </section>
+
     <section id="task-list-section">
       <ul id="task-list"></ul>
     </section>
+
     <section id="weekly-emotion-report">
       <span class="report-title">Tu semana emocional</span>
       <div class="emotion-bar">
@@ -86,11 +90,13 @@
         <span class="emotion-day">D -</span>
       </div>
     </section>
+
     <section id="stats-section" class="hidden">
       <h2>Estadísticas</h2>
       <div id="stats-emotions"></div>
       <div id="stats-productivity"></div>
     </section>
+
     <section id="settings-section" class="hidden">
       <h2>Configuraciones</h2>
       <div class="settings-group">
@@ -115,13 +121,20 @@
         <label>Bolitas Anti-Stress:</label>
         <button id="open-antistress-btn">Abrir</button>
       </div>
+      <div class="settings-group">
+        <label>Bloqueo con PIN:</label>
+        <button id="open-pin-btn">Abrir</button>
+      </div>
     </section>
+
     <button id="floating-add-btn" class="floating-btn">+</button>
-    <footer>Tu semana: 😊😊😣😌😢</footer>
+    <footer id="semana-resumen">Tu semana: 😊😊😣😌😢</footer>
   </div>
+
+  <!-- Modal Enfoque -->
   <div id="focus-mode" class="modal hidden">
     <div class="modal-content">
-      <span class="modal-close">&times;</span>
+      <span class="modal-close" data-close="focus-mode">&times;</span>
       <h2>Modo Enfoque</h2>
       <div id="focus-task"></div>
       <div id="pomodoro-timer">25:00</div>
@@ -129,14 +142,16 @@
       <button id="pomodoro-reset-btn">Reiniciar</button>
     </div>
   </div>
+
+  <!-- Modal Día -->
   <div id="day-modal" class="modal hidden">
     <div class="modal-content">
-      <span class="modal-close">&times;</span>
+      <span class="modal-close" data-close="day-modal">&times;</span>
       <h2 id="modal-date">Día seleccionado</h2>
       <p id="modal-emotion">Emoción: 😊</p>
       <p id="modal-notification" class="hidden">Hoy no registraste cómo te sentís 🧠</p>
       <div class="modal-input-group">
-        <input type="text" id="modal-task-input" placeholder="Nueva tarea...">
+        <input type="text" id="modal-task-input" placeholder="Nueva tarea..."/>
         <button id="modal-add-task-btn">+</button>
       </div>
       <div id="modal-subtasks"></div>
@@ -144,7 +159,8 @@
       <div id="modal-tasks">Tareas del día</div>
     </div>
   </div>
-  <!-- MODAL DE BURBUJAS ANTI STRESS -->
+
+  <!-- Modal Anti-Stress -->
   <div id="antistress-modal" class="modal hidden">
     <div class="modal-content antistress-modal-content">
       <span class="modal-close" id="close-antistress-modal">&times;</span>
@@ -154,6 +170,6 @@
     </div>
   </div>
 
-  <script type="module" src="script.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
